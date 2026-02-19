@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thunder Subtitle Web UI - Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            background-color: #007bff;
+            color: white;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Thunder Subtitle Web UI</h1>
+        <p>FastAPI版本 - 测试页面</p>
+    </div>
+    
+    <div class="content">
+        <h2>系统状态</h2>
+        <div class="status success">
+            <strong>✅ 服务器运行正常</strong>
+        </div>
+        
+        <h2>功能测试</h2>
+        <div class="status info">
+            <p><strong>测试1:</strong> 基本页面加载 - <span style="color: green;">成功</span></p>
+            <p><strong>测试2:</strong> HTML渲染 - <span style="color: green;">成功</span></p>
+            <p><strong>测试3:</strong> CSS样式 - <span style="color: green;">成功</span></p>
+        </div>
+        
+        <h2>API测试</h2>
+        <div class="status info">
+            <p><strong>配置API:</strong> <a href="/api/config" target="_blank">/api/config</a></p>
+            <p><strong>搜索API:</strong> POST /api/search</p>
+            <p><strong>扫描API:</strong> POST /api/scan</p>
+            <p><strong>下载API:</strong> POST /api/download</p>
+        </div>
+        
+        <h2>下一步</h2>
+        <p>如果此页面显示正常，说明FastAPI服务器运行正常。</p>
+        <p>请检查浏览器控制台是否有JavaScript错误。</p>
+        <p>如果页面显示不正常，请清除浏览器缓存并重新加载。</p>
+    </div>
+</body>
+</html>

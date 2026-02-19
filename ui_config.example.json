@@ -1,0 +1,9 @@
+{
+  "video_dir": "D:/Videos/Movies",
+  "save_dir": "D:/Subtitles",
+  "min_score": 0.0,
+  "language": "",
+  "timeout": 60.0,
+  "retries": 2,
+  "concurrency": 3
+}

@@ -1,0 +1,2757 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thunder Subtitle Web UI</title>
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #007bff;
+            color: white;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .nav-tabs {
+            margin-bottom: 20px;
+        }
+        .tab-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .alert {
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .btn {
+            margin-right: 10px;
+        }
+        .table {
+            margin-top: 20px;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Thunder Subtitle Web UI</h1>
+            <p>FastAPI版本</p>
+        </div>
+        
+        <!-- 导航标签 -->
+        <ul class="nav nav-tabs" id="mainTabs" role="tablist">
+            <li class="nav-item">
+                <button class="nav-link active" id="search-tab" data-bs-toggle="tab" data-bs-target="#search">
+                    字幕搜索
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="videos-tab" data-bs-toggle="tab" data-bs-target="#videos">
+                    视频检索
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="watcher-tab" data-bs-toggle="tab" data-bs-target="#watcher">
+                    目录监控
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="smb-tab" data-bs-toggle="tab" data-bs-target="#smb">
+                    SMB批量下载
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings">
+                    设置
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history">
+                    下载历史
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="config-tab" data-bs-toggle="tab" data-bs-target="#config">
+                    配置管理
+                </button>
+            </li>
+        </ul>
+        
+        <!-- 标签内容 -->
+        <div class="tab-content" id="mainTabsContent">
+            <!-- 字幕搜索 -->
+            <div class="tab-pane fade show active" id="search">
+                <h2>字幕搜索</h2>
+                <div class="form-group">
+                    <input type="text" class="form-control" id="searchKeyword" placeholder="输入搜索关键词...">
+                </div>
+                <button class="btn btn-primary" onclick="searchSubtitles()">搜索</button>
+                <div id="searchResults" class="mt-4">
+                    <div class="alert alert-info">
+                        请输入关键词搜索字幕
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 视频检索 -->
+            <div class="tab-pane fade" id="videos">
+                <h2>视频检索</h2>
+                <button class="btn btn-primary" onclick="scanVideos()">扫描视频文件</button>
+                <button class="btn btn-success" id="batchDownloadBtn" onclick="batchDownload()" style="display: none;">
+                    批量下载字幕
+                </button>
+                <div class="form-check form-switch ms-3 d-inline-block" id="batchAiOption" style="display: none;">
+                    <input class="form-check-input" type="checkbox" id="batchUseAi">
+                    <label class="form-check-label" for="batchUseAi">使用AI选择最优字幕</label>
+                </div>
+                <div id="videoList" class="mt-4">
+                    <div class="alert alert-info">
+                        点击"扫描视频文件"按钮开始扫描
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 设置 -->
+            <div class="tab-pane fade" id="settings">
+                <h2>设置</h2>
+                <div class="form-group">
+                    <label>视频目录</label>
+                    <input type="text" class="form-control" id="videoDir" placeholder="输入视频目录路径">
+                </div>
+                <div class="form-group">
+                    <label>字幕保存目录</label>
+                    <input type="text" class="form-control" id="saveDir" placeholder="输入字幕保存目录路径">
+                </div>
+                <div class="form-group">
+                    <label>最低评分: <span id="minScoreValue">0.0</span></label>
+                    <input type="range" class="form-range" id="minScore" min="0" max="10" step="0.1" value="0">
+                </div>
+                <div class="form-group">
+                    <label>语言过滤</label>
+                    <input type="text" class="form-control" id="language" placeholder="例如: zh-CN, en">
+                </div>
+                <div class="form-group">
+                    <label>超时时间 (秒)</label>
+                    <input type="number" class="form-control" id="timeout" value="60" min="1" max="300">
+                </div>
+                <div class="form-group">
+                    <label>重试次数</label>
+                    <input type="number" class="form-control" id="retries" value="2" min="0" max="10">
+                </div>
+                
+                <hr class="my-4">
+                <h4>AI评估设置</h4>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="aiEnabled">
+                    <label class="form-check-label" for="aiEnabled">启用AI评估字幕质量</label>
+                </div>
+                <div id="aiSettings" style="display: none;">
+                    <div class="form-group mt-2">
+                        <label>API Key</label>
+                        <input type="password" class="form-control" id="aiApiKey" placeholder="输入API Key">
+                    </div>
+                    <div class="form-group">
+                        <label>API Base URL</label>
+                        <input type="text" class="form-control" id="aiBaseUrl" value="https://api.deepseek.com">
+                    </div>
+                    <div class="form-group">
+                        <label>模型</label>
+                        <input type="text" class="form-control" id="aiModel" value="deepseek-chat">
+                    </div>
+                    <div class="alert alert-info mt-2">
+                        <small>支持DeepSeek、OpenAI等兼容API。启用后将在预览字幕时显示AI质量评估。</small>
+                    </div>
+                </div>
+                
+                <button class="btn btn-success mt-3" onclick="saveConfig()">保存设置</button>
+            </div>
+            
+            <!-- 目录监控 -->
+            <div class="tab-pane fade" id="watcher">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="mb-0">目录监控</h2>
+                    <div>
+                        <span class="badge me-2" id="watcherStatus">未启动</span>
+                        <button type="button" class="btn btn-success btn-sm" id="startWatcherBtn" onclick="startWatcher()">
+                            启动监控
+                        </button>
+                        <button type="button" class="btn btn-danger btn-sm" id="stopWatcherBtn" onclick="stopWatcher()" style="display: none;">
+                            停止监控
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info" id="watcherUnavailable" style="display: none;">
+                    <strong>提示:</strong> 目录监控功能需要安装 watchdog 库，请运行: <code>pip install watchdog</code>
+                </div>
+                
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <strong>添加监控目录</strong>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>监控目录路径</label>
+                                    <input type="text" class="form-control" id="newWatchPath" placeholder="例如: D:\downloads">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>字幕输出目录 (留空使用默认)</label>
+                                    <input type="text" class="form-control" id="newWatchOutput" placeholder="例如: D:\subtitles">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>监控文件类型</label>
+                                    <select class="form-select" id="newWatchFileTypes" multiple style="height: 120px;">
+                                        <option value=".mp4" selected>.mp4</option>
+                                        <option value=".avi" selected>.avi</option>
+                                        <option value=".mkv" selected>.mkv</option>
+                                        <option value=".mov">.mov</option>
+                                        <option value=".wmv">.wmv</option>
+                                        <option value=".flv">.flv</option>
+                                        <option value=".webm">.webm</option>
+                                        <option value=".m4v">.m4v</option>
+                                        <option value=".rmvb">.rmvb</option>
+                                        <option value=".rm">.rm</option>
+                                        <option value=".ts">.ts</option>
+                                        <option value=".m2ts">.m2ts</option>
+                                    </select>
+                                    <small class="text-muted">按住 Ctrl 多选</small>
+                                </div>
+                                <div class="input-group input-group-sm mt-1">
+                                    <input type="text" class="form-control" id="newWatchCustomType" placeholder="自定义类型，如 .mpg">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="addWatchFileType()">添加</button>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>&nbsp;</label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="newWatchUseAi">
+                                        <label class="form-check-label" for="newWatchUseAi">
+                                            使用AI选择最优字幕
+                                        </label>
+                                    </div>
+                                    <div class="form-check mt-2">
+                                        <input class="form-check-input" type="checkbox" id="newWatchEnabled" checked>
+                                        <label class="form-check-label" for="newWatchEnabled">
+                                            启用此目录监控
+                                        </label>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-primary mt-2" onclick="addWatchDirectory()">
+                                    添加目录
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <strong>监控目录列表</strong>
+                    </div>
+                    <div class="card-body">
+                        <div id="watchDirectoryList">
+                            <div class="text-muted">暂无监控目录</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <strong>事件日志</strong>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="refreshWatcherEvents()">
+                            刷新
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="watcherEventLog" style="max-height: 300px; overflow-y: auto;">
+                            <div class="text-muted">暂无事件</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- SMB批量下载 -->
+            <div class="tab-pane fade" id="smb">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="mb-0">SMB批量下载</h2>
+                    <div>
+                        <span class="badge me-2" id="smbStatus">未连接</span>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="testSmbConnection()">
+                            测试连接
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info">
+                    <strong>功能说明:</strong> 连接SMB网络共享，扫描视频文件并批量下载优质字幕。支持递归扫描子目录。
+                </div>
+                
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <strong>SMB服务器配置</strong>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>服务器地址</label>
+                                    <input type="text" class="form-control" id="smbHost" placeholder="例如: 192.168.0.21">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>端口</label>
+                                    <input type="text" class="form-control" id="smbPort" value="445" placeholder="默认445">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>共享名称</label>
+                                    <input type="text" class="form-control" id="smbShare" placeholder="例如: Video">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>用户名</label>
+                                    <input type="text" class="form-control" id="smbUser" placeholder="SMB用户名">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>密码</label>
+                                    <input type="password" class="form-control" id="smbPassword" placeholder="SMB密码">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>扫描路径</label>
+                                    <input type="text" class="form-control" id="smbDir" placeholder="例如: 动漫/哆啦A梦">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>字幕保存目录</label>
+                                    <input type="text" class="form-control" id="smbOutputDir" placeholder="留空使用默认 ./subtitles">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>扫描文件类型</label>
+                                    <select class="form-select" id="smbFileTypes" multiple style="height: 100px;">
+                                        <option value=".mp4" selected>.mp4</option>
+                                        <option value=".avi" selected>.avi</option>
+                                        <option value=".mkv" selected>.mkv</option>
+                                        <option value=".mov">.mov</option>
+                                        <option value=".wmv">.wmv</option>
+                                        <option value=".flv">.flv</option>
+                                        <option value=".webm">.webm</option>
+                                        <option value=".m4v">.m4v</option>
+                                        <option value=".rmvb">.rmvb</option>
+                                        <option value=".ts">.ts</option>
+                                        <option value=".m2ts">.m2ts</option>
+                                    </select>
+                                    <small class="text-muted">按住 Ctrl 多选</small>
+                                </div>
+                                <div class="input-group input-group-sm mt-1">
+                                    <input type="text" class="form-control" id="smbCustomType" placeholder="自定义类型，如 .mpg">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="addSmbFileType()">添加</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="smbRecursive" checked>
+                                    <label class="form-check-label" for="smbRecursive">
+                                        递归扫描子目录
+                                    </label>
+                                </div>
+                                <div class="form-check mt-2">
+                                    <input class="form-check-input" type="checkbox" id="smbUseAi" checked>
+                                    <label class="form-check-label" for="smbUseAi">
+                                        使用AI选择最优字幕
+                                    </label>
+                                </div>
+                                <div class="form-check mt-2">
+                                    <input class="form-check-input" type="checkbox" id="smbSaveToVideoDir">
+                                    <label class="form-check-label" for="smbSaveToVideoDir">
+                                        保存到视频同级目录
+                                    </label>
+                                    <small class="text-muted d-block">勾选后字幕将保存在视频文件所在目录</small>
+                                </div>
+                                <div class="form-check mt-2">
+                                    <input class="form-check-input" type="checkbox" id="smbSkipBuiltInSub">
+                                    <label class="form-check-label" for="smbSkipBuiltInSub">
+                                        跳过自带字幕文件
+                                    </label>
+                                    <small class="text-muted d-block">跳过文件名包含 -C、-UC、-U-C 的文件（表示已有中文字幕）</small>
+                                </div>
+                                <div class="form-check mt-2">
+                                    <input class="form-check-input" type="checkbox" id="smbEnableSizeFilter" onchange="toggleSizeFilter()">
+                                    <label class="form-check-label" for="smbEnableSizeFilter">
+                                        启用文件大小过滤
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <button type="button" class="btn btn-success" onclick="saveSmbConfig()">
+                                    保存配置
+                                </button>
+                                <button type="button" class="btn btn-primary" onclick="scanSmbVideos()">
+                                    扫描视频文件
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="row mt-2" id="sizeFilterConfig" style="display: none;">
+                            <div class="col-12">
+                                <div class="card card-body bg-light">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <strong>文件大小过滤设置</strong>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="addSizeFilterRow()">
+                                            + 添加类型
+                                        </button>
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-bordered" id="sizeFilterTable">
+                                            <thead>
+                                                <tr>
+                                                    <th style="width: 30%;">文件类型</th>
+                                                    <th style="width: 25%;">最小大小 (MB)</th>
+                                                    <th style="width: 25%;">最大大小 (MB)</th>
+                                                    <th style="width: 20%;">操作</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="sizeFilterBody">
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <small class="text-muted">为每个文件类型单独设置大小限制，0 表示不限制</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mb-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <strong>扫描结果</strong>
+                        <div>
+                            <button type="button" class="btn btn-outline-primary btn-sm me-2" onclick="selectAllSmbVideos()">
+                                全选
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm me-2" onclick="deselectAllSmbVideos()">
+                                取消全选
+                            </button>
+                            <span id="smbVideoCount" class="me-2">共 0 个视频</span>
+                            <button type="button" class="btn btn-success btn-sm" id="smbDownloadAllBtn" onclick="downloadSmbSelected()" disabled>
+                                批量下载选中
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="smbVideoList" style="max-height: 400px; overflow-y: auto;">
+                            <div class="text-muted">请先扫描视频文件</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <strong>下载进度</strong>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearSmbLog()">
+                            清空日志
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="smbDownloadLog" style="max-height: 300px; overflow-y: auto;">
+                            <div class="text-muted">暂无日志</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 下载历史 -->
+            <div class="tab-pane fade" id="history">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="mb-0">下载历史</h2>
+                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="clearHistory()">
+                        清空历史
+                    </button>
+                </div>
+                <div id="downloadHistory">
+                    <div class="alert alert-info">
+                        暂无下载历史
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 配置管理 -->
+            <div class="tab-pane fade" id="config">
+                <h2>配置管理</h2>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">导出配置</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted">导出当前所有配置，包括：</p>
+                                <ul class="text-muted small">
+                                    <li>基本设置</li>
+                                    <li>AI评估设置</li>
+                                    <li>目录监控配置</li>
+                                    <li>SMB批量下载配置</li>
+                                </ul>
+                                <button class="btn btn-primary w-100" onclick="exportConfig()">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-download me-1" viewBox="0 0 16 16">
+                                        <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                                        <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                                    </svg>
+                                    导出配置文件
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">导入配置</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted">从配置文件恢复设置</p>
+                                <div class="alert alert-warning py-2">
+                                    <small>导入将覆盖当前设置</small>
+                                </div>
+                                <input type="file" id="configFileInput" accept=".json" style="display: none;" onchange="importConfig(event)">
+                                <button class="btn btn-success w-100" onclick="document.getElementById('configFileInput').click()">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-upload me-1" viewBox="0 0 16 16">
+                                        <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                                        <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/>
+                                    </svg>
+                                    选择配置文件
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header bg-danger text-white">
+                                <h5 class="mb-0">初始化配置</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted">重置为默认配置</p>
+                                <div class="alert alert-danger py-2">
+                                    <small>此操作将清空所有配置！</small>
+                                </div>
+                                <button class="btn btn-danger w-100" onclick="resetConfig()">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-counterclockwise me-1" viewBox="0 0 16 16">
+                                        <path fill-rule="evenodd" d="M8 3a5 5 0 1 1-4.546 2.914.5.5 0 0 0-.908-.417A6 6 0 1 0 8 2v1z"/>
+                                        <path d="M8 4.466V.534a.25.25 0 0 0-.41-.192L5.23 2.308a.25.25 0 0 0 0 .384l2.36 1.966A.25.25 0 0 0 8 4.466z"/>
+                                    </svg>
+                                    初始化配置
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">当前配置预览</h5>
+                    </div>
+                    <div class="card-body">
+                        <pre id="configPreview" style="max-height: 400px; overflow-y: auto; background: #f8f9fa; padding: 15px; border-radius: 5px;"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="/static/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 全局变量
+        let downloadHistory = [];
+        
+        async function loadHistory() {
+            try {
+                const response = await fetch('/api/history');
+                const data = await response.json();
+                if (data.success) {
+                    downloadHistory = data.history || [];
+                    updateHistoryDisplay();
+                }
+            } catch (e) {
+                console.error('加载历史记录失败:', e);
+            }
+        }
+        
+        async function saveHistory() {
+            try {
+                await fetch('/api/history', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(downloadHistory[0])
+                });
+            } catch (e) {
+                console.error('保存历史记录失败:', e);
+            }
+        }
+        
+        async function addToHistory(item) {
+            try {
+                await fetch('/api/history', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(item)
+                });
+                await loadHistory();
+            } catch (e) {
+                console.error('添加历史记录失败:', e);
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            loadConfig();
+            loadHistory();
+        });
+        
+        // 加载配置
+        async function loadConfig() {
+            try {
+                const response = await fetch('/api/config');
+                const config = await response.json();
+                
+                document.getElementById('videoDir').value = config.video_dir || '';
+                document.getElementById('saveDir').value = config.save_dir || '';
+                document.getElementById('minScore').value = config.min_score || 0;
+                document.getElementById('minScoreValue').textContent = config.min_score || 0;
+                document.getElementById('language').value = config.language || '';
+                document.getElementById('timeout').value = config.timeout || 60;
+                document.getElementById('retries').value = config.retries || 2;
+                
+                const aiConfig = config.ai_evaluator || {};
+                document.getElementById('aiEnabled').checked = aiConfig.enabled || false;
+                document.getElementById('aiApiKey').value = aiConfig.api_key || '';
+                document.getElementById('aiBaseUrl').value = aiConfig.base_url || 'https://api.deepseek.com';
+                document.getElementById('aiModel').value = aiConfig.model || 'deepseek-chat';
+                
+                toggleAiSettings();
+            } catch (error) {
+                console.error('加载配置失败:', error);
+            }
+        }
+        
+        function toggleAiSettings() {
+            const aiSettings = document.getElementById('aiSettings');
+            const aiEnabled = document.getElementById('aiEnabled').checked;
+            aiSettings.style.display = aiEnabled ? 'block' : 'none';
+        }
+        
+        document.getElementById('aiEnabled').addEventListener('change', toggleAiSettings);
+        
+        async function saveConfig() {
+            const config = {
+                video_dir: document.getElementById('videoDir').value,
+                save_dir: document.getElementById('saveDir').value,
+                min_score: parseFloat(document.getElementById('minScore').value),
+                language: document.getElementById('language').value,
+                timeout: parseFloat(document.getElementById('timeout').value),
+                retries: parseInt(document.getElementById('retries').value),
+                ai_evaluator: {
+                    enabled: document.getElementById('aiEnabled').checked,
+                    api_key: document.getElementById('aiApiKey').value,
+                    base_url: document.getElementById('aiBaseUrl').value,
+                    model: document.getElementById('aiModel').value
+                }
+            };
+            
+            try {
+                const response = await fetch('/api/config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(config)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('配置保存成功！');
+                } else {
+                    alert('配置保存失败：' + result.error);
+                }
+            } catch (error) {
+                console.error('保存配置失败:', error);
+                alert('保存配置失败：' + error.message);
+            }
+        }
+        
+        async function loadFullConfig() {
+            try {
+                const response = await fetch('/api/config');
+                return await response.json();
+            } catch (error) {
+                console.error('加载配置失败:', error);
+                return null;
+            }
+        }
+        
+        async function exportConfig() {
+            try {
+                const config = await loadFullConfig();
+                if (!config) {
+                    alert('获取配置失败');
+                    return;
+                }
+                
+                const exportData = {
+                    video_dir: config.video_dir || '',
+                    save_dir: config.save_dir || '',
+                    min_score: config.min_score || 0,
+                    language: config.language || '',
+                    timeout: config.timeout || 60,
+                    retries: config.retries || 2,
+                    concurrency: config.concurrency || 3,
+                    ai_evaluator: config.ai_evaluator || {},
+                    directory_watcher: config.directory_watcher || {},
+                    smb: config.smb || {}
+                };
+                
+                const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'thunder-subtitle-config-' + new Date().toISOString().slice(0, 10) + '.json';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                alert('配置导出成功！');
+            } catch (error) {
+                console.error('导出配置失败:', error);
+                alert('导出配置失败：' + error.message);
+            }
+        }
+        
+        async function importConfig(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            try {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    try {
+                        const config = JSON.parse(e.target.result);
+                        
+                        if (!confirm('导入配置将覆盖当前所有设置，是否继续？')) {
+                            return;
+                        }
+                        
+                        const response = await fetch('/api/config/import', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(config)
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            alert('配置导入成功！页面将刷新以应用新配置。');
+                            location.reload();
+                        } else {
+                            alert('配置导入失败：' + result.error);
+                        }
+                    } catch (parseError) {
+                        alert('配置文件格式错误：' + parseError.message);
+                    }
+                };
+                reader.readAsText(file);
+            } catch (error) {
+                console.error('导入配置失败:', error);
+                alert('导入配置失败：' + error.message);
+            }
+            
+            event.target.value = '';
+        }
+        
+        async function updateConfigPreview() {
+            try {
+                const config = await loadFullConfig();
+                if (config) {
+                    const preview = document.getElementById('configPreview');
+                    if (preview) {
+                        const displayConfig = {
+                            video_dir: config.video_dir || '',
+                            save_dir: config.save_dir || '',
+                            min_score: config.min_score || 0,
+                            language: config.language || '',
+                            timeout: config.timeout || 60,
+                            retries: config.retries || 2,
+                            concurrency: config.concurrency || 3,
+                            ai_evaluator: config.ai_evaluator || {},
+                            directory_watcher: config.directory_watcher || {},
+                            smb: config.smb || {}
+                        };
+                        preview.textContent = JSON.stringify(displayConfig, null, 2);
+                    }
+                }
+            } catch (error) {
+                console.error('更新配置预览失败:', error);
+            }
+        }
+        
+        async function resetConfig() {
+            if (!confirm('确定要初始化配置吗？此操作将清空所有当前配置！')) {
+                return;
+            }
+            
+            if (!confirm('再次确认：此操作不可恢复，是否继续？')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/config/reset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('配置已初始化！页面将刷新。');
+                    location.reload();
+                } else {
+                    alert('初始化配置失败：' + result.error);
+                }
+            } catch (error) {
+                console.error('初始化配置失败:', error);
+                alert('初始化配置失败：' + error.message);
+            }
+        }
+        
+        document.getElementById('config-tab')?.addEventListener('shown.bs.tab', updateConfigPreview);
+        
+        // 更新最低评分显示
+        document.getElementById('minScore').addEventListener('input', function() {
+            document.getElementById('minScoreValue').textContent = this.value;
+        });
+        
+        // 搜索字幕
+        async function searchSubtitles() {
+            const keyword = document.getElementById('searchKeyword').value.trim();
+            
+            if (!keyword) {
+                alert('请输入搜索关键词');
+                return;
+            }
+            
+            const resultsDiv = document.getElementById('searchResults');
+            resultsDiv.innerHTML = `
+                <div class="loading">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">正在搜索字幕...</p>
+                </div>
+            `;
+            
+            try {
+                const response = await fetch('/api/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        keyword: keyword,
+                        min_score: parseFloat(document.getElementById('minScore').value),
+                        language: document.getElementById('language').value
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success && result.subtitles.length > 0) {
+                    displaySearchResults(result.subtitles);
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div class="alert alert-warning">
+                            未找到匹配的字幕
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('搜索字幕失败:', error);
+                resultsDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        搜索失败：${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        // 显示搜索结果
+        function displaySearchResults(subtitles) {
+            const resultsDiv = document.getElementById('searchResults');
+            
+            let html = `
+                <div class="alert alert-success d-flex justify-content-between align-items-center">
+                    <span>找到 ${subtitles.length} 个字幕</span>
+                    <button class="btn btn-sm btn-outline-primary" onclick="pickBestSubtitle(${JSON.stringify(subtitles).replace(/"/g, '&quot;')})">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-stars" viewBox="0 0 16 16">
+                            <path d="M7.652 1.326C7.638 1.308 7.614 1.3 7.588 1.3c-.027 0-.053.008-.066.026l-1.47 1.865-2.29.342c-.03.005-.056.022-.07.046-.014.024-.018.054-.01.082l.926 2.094-.7 2.373c-.009.028-.005.058.008.082.014.024.039.041.069.047l2.318.394 1.52 1.75c.015.017.039.026.063.026.024 0 .048-.009.063-.026l1.52-1.75 2.318-.394c.03-.006.055-.023.069-.047.013-.024.017-.054.008-.082l-.7-2.373.926-2.094c.008-.028.004-.058-.01-.082-.014-.024-.04-.041-.07-.046l-2.29-.342-1.47-1.865zM7.588.3c.47 0 .91.208 1.21.57l1.26 1.598 1.97.294c.5.075.91.394 1.1.858.19.464.13.99-.16 1.397l-1.23 1.728.78 2.647c.15.513.02 1.066-.34 1.456-.36.39-.9.546-1.4.42l-2.6-.653-2.6.653c-.5.126-1.04-.03-1.4-.42-.36-.39-.49-.943-.34-1.456l.78-2.647-1.23-1.728c-.29-.407-.35-.933-.16-1.397.19-.464.6-.783 1.1-.858l1.97-.294 1.26-1.598c.3-.362.74-.57 1.21-.57z"/>
+                        </svg>
+                        AI挑选最佳字幕
+                    </button>
+                </div>
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>名称</th>
+                            <th>语言</th>
+                            <th>评分</th>
+                            <th>大小</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            subtitles.forEach((subtitle, index) => {
+                html += `
+                    <tr>
+                        <td>${subtitle.name}</td>
+                        <td><span class="badge bg-info">${subtitle.language || '未知'}</span></td>
+                        <td><span class="badge bg-warning">${subtitle.score.toFixed(1)}</span></td>
+                        <td>${formatSize(subtitle.size)}</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary" onclick="previewSubtitle('${subtitle.url}', '${subtitle.name}')">
+                                预览
+                            </button>
+                            <button class="btn btn-sm btn-success" onclick="downloadSubtitle('${subtitle.url}', '${subtitle.name}', '${subtitle.ext}')">
+                                下载
+                            </button>
+                            <button class="btn btn-sm btn-outline-info" onclick="evaluateSubtitleAI('${subtitle.url}', '${subtitle.ext || 'srt'}', 'ai-eval-${subtitle.gcid || index}')">
+                                AI评估
+                            </button>
+                        </td>
+                    </tr>
+                    <tr id="ai-eval-${subtitle.gcid || index}" style="display:none;">
+                        <td colspan="5"></td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                    </tbody>
+                </table>
+            `;
+            
+            resultsDiv.innerHTML = html;
+        }
+        
+        // 预览字幕
+        async function previewSubtitle(url, name) {
+            const existingPreview = document.querySelector(`[data-preview-url="${url}"]`);
+            if (existingPreview) {
+                existingPreview.remove();
+                return;
+            }
+            
+            const previewDiv = document.createElement('div');
+            previewDiv.className = 'alert alert-info mt-3';
+            previewDiv.setAttribute('data-preview-url', url);
+            previewDiv.innerHTML = `
+                <div class="loading">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">正在加载预览...</p>
+                </div>
+            `;
+            
+            const resultsDiv = document.getElementById('searchResults');
+            resultsDiv.appendChild(previewDiv);
+            
+            try {
+                const response = await fetch('/api/preview', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        keyword: url
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    previewDiv.innerHTML = `
+                        <h4>预览: ${name}</h4>
+                        <pre>${escapeHtml(result.preview)}</pre>
+                        <button class="btn btn-sm btn-secondary" onclick="this.parentElement.remove()">
+                            关闭预览
+                        </button>
+                    `;
+                } else {
+                    previewDiv.innerHTML = `
+                        <div class="alert alert-danger">
+                            预览失败：${result.error}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('预览字幕失败:', error);
+                previewDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        预览失败：${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        // 下载字幕
+        async function downloadSubtitle(url, name, ext) {
+            try {
+                const response = await fetch('/api/download', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        url: url,
+                        name: name,
+                        ext: ext
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    if (result.fallback) {
+                        downloadFile(result.filename, result.data);
+                    } else {
+                        alert(result.message);
+                    }
+                    addToHistory(name, result.file_path || result.filename);
+                } else {
+                    alert('下载失败：' + result.error);
+                }
+            } catch (error) {
+                console.error('下载字幕失败:', error);
+                alert('下载失败：' + error.message);
+            }
+        }
+        
+        // 下载文件
+        function downloadFile(filename, content) {
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        
+        // 扫描视频文件
+        async function scanVideos() {
+            const videoListDiv = document.getElementById('videoList');
+            videoListDiv.innerHTML = `
+                <div class="loading">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">正在扫描视频文件...</p>
+                </div>
+            `;
+            
+            try {
+                const response = await fetch('/api/scan', {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success && result.video_files.length > 0) {
+                    displayVideoFiles(result.video_files);
+                } else {
+                    videoListDiv.innerHTML = `
+                        <div class="alert alert-warning">
+                            未找到视频文件
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('扫描视频文件失败:', error);
+                videoListDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        扫描失败：${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        // 显示视频文件列表
+        function displayVideoFiles(videoFiles) {
+            const videoListDiv = document.getElementById('videoList');
+            
+            let html = `
+                <div class="alert alert-success">
+                    找到 ${videoFiles.length} 个视频文件
+                </div>
+                <div class="mb-3">
+                    <button class="btn btn-sm btn-outline-primary" onclick="selectAllVideos()">全选</button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="deselectAllVideos()">取消全选</button>
+                </div>
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th width="50">
+                                <input type="checkbox" class="form-check-input" id="selectAllCheckbox" onchange="toggleAllVideos(this.checked)">
+                            </th>
+                            <th>文件名</th>
+                            <th>大小</th>
+                            <th>修改时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            videoFiles.forEach((video, index) => {
+                const baseName = video.name.replace(/\.[^/.]+$/, "");
+                html += `
+                    <tr>
+                        <td>
+                            <input type="checkbox" class="form-check-input video-checkbox" data-index="${index}" data-name="${video.name}">
+                        </td>
+                        <td>${video.name}</td>
+                        <td>${formatSize(video.size)}</td>
+                        <td>${video.modified}</td>
+                        <td>
+                            <button class="btn btn-sm btn-info" onclick="previewVideoSubtitle('${baseName}', ${index})">
+                                预览
+                            </button>
+                            <button class="btn btn-sm btn-primary" onclick="searchSubtitlesByName('${baseName}')">
+                                搜索
+                            </button>
+                        </td>
+                    </tr>
+                    <tr id="preview-row-${index}" style="display: none;">
+                        <td colspan="5">
+                            <div id="preview-content-${index}" class="p-3 bg-light">
+                                <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                正在加载预览...
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                    </tbody>
+                </table>
+            `;
+            
+            videoListDiv.innerHTML = html;
+            
+            // 显示批量下载按钮
+            document.getElementById('batchDownloadBtn').style.display = 'inline-block';
+            document.getElementById('batchAiOption').style.display = 'inline-block';
+        }
+        
+        // 根据视频文件名搜索字幕
+        function searchSubtitlesByName(name) {
+            document.getElementById('searchKeyword').value = name;
+            document.getElementById('search-tab').click();
+            searchSubtitles();
+        }
+        
+        // 预览视频字幕
+        async function previewVideoSubtitle(baseName, index) {
+            const previewRow = document.getElementById(`preview-row-${index}`);
+            const previewContent = document.getElementById(`preview-content-${index}`);
+            
+            // 切换显示/隐藏
+            if (previewRow.style.display === 'table-row') {
+                previewRow.style.display = 'none';
+                return;
+            }
+            
+            previewRow.style.display = 'table-row';
+            previewContent.innerHTML = `
+                <div class="spinner-border spinner-border-sm text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                正在搜索字幕...
+            `;
+            
+            try {
+                // 搜索字幕
+                const searchResponse = await fetch('/api/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        keyword: baseName,
+                        min_score: 0.0,
+                        language: ''
+                    })
+                });
+                
+                const searchResult = await searchResponse.json();
+                
+                if (!searchResult.success || !searchResult.subtitles || searchResult.subtitles.length === 0) {
+                    previewContent.innerHTML = `
+                        <div class="alert alert-warning mb-0">
+                            未找到匹配的字幕
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // 显示找到的字幕列表
+                const bestSubtitle = searchResult.subtitles[0];
+                let html = `
+                    <div class="mb-2">
+                        <strong>找到 ${searchResult.subtitles.length} 个字幕</strong>，
+                        <span class="text-muted">最佳匹配: ${bestSubtitle.name}</span>
+                        <span class="badge bg-warning ms-2">评分: ${bestSubtitle.score.toFixed(1)}</span>
+                    </div>
+                    <div class="mb-2">
+                        <button class="btn btn-sm btn-success" onclick="downloadVideoSubtitle('${bestSubtitle.url}', '${bestSubtitle.name}', '${bestSubtitle.ext}', '${baseName}')">
+                            下载最佳字幕
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="showAllSubtitles(${index}, '${baseName}')">
+                            查看所有字幕
+                        </button>
+                    </div>
+                    <div id="all-subtitles-${index}" style="display: none;">
+                        <hr>
+                        <h6>所有匹配字幕:</h6>
+                        <div class="list-group">
+                `;
+                
+                searchResult.subtitles.forEach((sub, i) => {
+                    html += `
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <small>${sub.name}</small>
+                                    <span class="badge bg-info ms-1">${sub.language || '未知'}</span>
+                                    <span class="badge bg-warning ms-1">${sub.score.toFixed(1)}</span>
+                                </div>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-info" onclick="previewSubtitleContent('${sub.url}', '${sub.name}', 'sub-preview-${index}-${i}', '${sub.ext || 'srt'}')">
+                                        预览
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="downloadVideoSubtitle('${sub.url}', '${sub.name}', '${sub.ext}', '${baseName}')">
+                                        下载
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="sub-preview-${index}-${i}" class="mt-2" style="display: none;"></div>
+                        </div>
+                    `;
+                });
+                
+                html += `
+                        </div>
+                    </div>
+                `;
+                
+                previewContent.innerHTML = html;
+                
+            } catch (error) {
+                console.error('预览字幕失败:', error);
+                previewContent.innerHTML = `
+                    <div class="alert alert-danger mb-0">
+                        预览失败: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        // 显示所有字幕
+        function showAllSubtitles(index, baseName) {
+            const allSubtitlesDiv = document.getElementById(`all-subtitles-${index}`);
+            if (allSubtitlesDiv.style.display === 'none') {
+                allSubtitlesDiv.style.display = 'block';
+            } else {
+                allSubtitlesDiv.style.display = 'none';
+            }
+        }
+        
+        // 下载视频字幕
+        async function downloadVideoSubtitle(url, name, ext, baseName) {
+            try {
+                const response = await fetch('/api/download', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        url: url,
+                        name: name,
+                        ext: ext
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    if (result.fallback) {
+                        downloadFile(result.filename, result.data);
+                    }
+                    alert(`字幕下载成功: ${result.file_path || result.filename}`);
+                    addToHistory(name, result.file_path || result.filename);
+                } else {
+                    alert('下载失败: ' + result.error);
+                }
+            } catch (error) {
+                console.error('下载字幕失败:', error);
+                alert('下载失败: ' + error.message);
+            }
+        }
+        
+        // 预览字幕内容
+        async function previewSubtitleContent(url, name, previewId, ext) {
+            const previewDiv = document.getElementById(previewId);
+            
+            if (previewDiv.style.display === 'block') {
+                previewDiv.style.display = 'none';
+                return;
+            }
+            
+            previewDiv.style.display = 'block';
+            previewDiv.innerHTML = `
+                <div class="spinner-border spinner-border-sm text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                正在加载字幕内容...
+            `;
+            
+            try {
+                const response = await fetch('/api/preview', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        keyword: url
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    const lines = result.preview.split('\n').slice(0, 50);
+                    const preview = lines.join('\n');
+                    previewDiv.innerHTML = `
+                        <div class="mb-2">
+                            <button class="btn btn-sm btn-outline-info" onclick="evaluateSubtitleAI('${url}', '${ext || 'srt'}', '${previewId}-ai')">
+                                🤖 AI评估质量
+                            </button>
+                        </div>
+                        <div id="${previewId}-ai"></div>
+                        <pre class="mb-0 p-2 bg-white border rounded" style="max-height: 300px; overflow-y: auto; font-size: 12px;">${escapeHtml(preview)}</pre>
+                        ${result.preview.split('\n').length > 50 ? '<small class="text-muted">... 仅显示前50行</small>' : ''}
+                    `;
+                } else {
+                    previewDiv.innerHTML = `
+                        <div class="alert alert-danger mb-0 py-1">
+                            预览失败: ${result.error}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('预览字幕内容失败:', error);
+                previewDiv.innerHTML = `
+                    <div class="alert alert-danger mb-0 py-1">
+                        预览失败: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        function calculateFilenameSimilarity(videoName, subtitleName) {
+            const normalize = (name) => {
+                name = name.toLowerCase();
+                name = name.replace(/\.(mp4|avi|mkv|mov|wmv|flv|webm|m4v|rmvb|rm|ts|m2ts|strm|srt|ass|ssa|sub)$/gi, '');
+                name = name.replace(/[._\-\[\]()（）\s]+/g, ' ');
+                name = name.replace(/([a-z])(\d)/g, '$1 $2');
+                name = name.replace(/(\d)([a-z])/g, '$1 $2');
+                name = name.replace(/\s+/g, ' ').trim();
+                return name;
+            };
+            
+            const videoNorm = normalize(videoName);
+            const subtitleNorm = normalize(subtitleName);
+            
+            if (videoNorm === subtitleNorm) return 100;
+            
+            const videoWords = new Set(videoNorm.split(' ').filter(w => w.length > 0));
+            const subtitleWords = new Set(subtitleNorm.split(' ').filter(w => w.length > 0));
+            
+            if (videoWords.size === 0 || subtitleWords.size === 0) return 0;
+            
+            let commonWords = 0;
+            for (const word of videoWords) {
+                if (subtitleWords.has(word)) commonWords++;
+            }
+            
+            let similarity = (commonWords / videoWords.size) * 100;
+            
+            const yearPattern = /(19\d{2}|20\d{2})/g;
+            const videoYears = new Set(videoNorm.match(yearPattern) || []);
+            const subtitleYears = new Set(subtitleNorm.match(yearPattern) || []);
+            
+            if (videoYears.size > 0 && subtitleYears.size > 0) {
+                let yearMatch = false;
+                for (const year of videoYears) {
+                    if (subtitleYears.has(year)) yearMatch = true;
+                }
+                if (yearMatch) similarity += 10;
+                else similarity -= 20;
+            }
+            
+            if (videoNorm.includes(subtitleNorm) || subtitleNorm.includes(videoNorm)) {
+                similarity = Math.max(similarity, 80);
+            }
+            
+            const videoAlnum = videoNorm.replace(/\s+/g, '');
+            const subtitleAlnum = subtitleNorm.replace(/\s+/g, '');
+            if (videoAlnum === subtitleAlnum) {
+                similarity = 100;
+            } else if (videoAlnum.includes(subtitleAlnum) || subtitleAlnum.includes(videoAlnum)) {
+                similarity = Math.max(similarity, 85);
+            }
+            
+            return Math.min(100, Math.max(0, similarity));
+        }
+        
+        async function pickBestSubtitle(subtitles) {
+            const resultsDiv = document.getElementById('searchResults');
+            
+            const searchKeyword = document.getElementById('searchKeyword').value;
+            
+            const aiConfig = {
+                enabled: document.getElementById('aiEnabled').checked,
+                api_key: document.getElementById('aiApiKey').value,
+                base_url: document.getElementById('aiBaseUrl').value,
+                model: document.getElementById('aiModel').value
+            };
+            
+            if (!aiConfig.enabled || !aiConfig.api_key) {
+                alert('请先在设置中启用AI评估并配置API密钥');
+                return;
+            }
+            
+            const totalToEvaluate = subtitles.length;
+            
+            const loadingHtml = `
+                <div class="alert alert-info" id="pickBestLoading">
+                    <div class="d-flex align-items-center">
+                        <div class="spinner-border spinner-border-sm me-2" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <div>
+                            <strong>正在AI评估挑选最佳字幕...</strong>
+                            <br><small id="pickBestStatus">评估进度: 0/${totalToEvaluate}</small>
+                        </div>
+                    </div>
+                    <div class="progress mt-2" style="height: 5px;">
+                        <div class="progress-bar" id="pickBestProgress" style="width: 0%"></div>
+                    </div>
+                </div>
+            `;
+            
+            const existingAlert = resultsDiv.querySelector('.alert-success');
+            if (existingAlert) {
+                existingAlert.insertAdjacentHTML('afterend', loadingHtml);
+            } else {
+                resultsDiv.insertAdjacentHTML('afterbegin', loadingHtml);
+            }
+            
+            try {
+                const subtitlesToEvaluate = subtitles.filter(sub => {
+                    const similarity = calculateFilenameSimilarity(searchKeyword, sub.name);
+                    if (similarity === 0) {
+                        console.log('跳过字幕:', sub.name, '(匹配度:0%)');
+                        return false;
+                    }
+                    return true;
+                });
+                
+                if (subtitlesToEvaluate.length === 0) {
+                    const loadingDiv = document.getElementById('pickBestLoading');
+                    if (loadingDiv) loadingDiv.remove();
+                    alert('所有字幕匹配度均为0，无法挑选');
+                    return;
+                }
+                
+                const results = [];
+                const concurrency = 5;
+                let completed = 0;
+                const actualTotal = subtitlesToEvaluate.length;
+                
+                const evaluateSubtitle = async (subtitle) => {
+                    try {
+                        const filenameScore = calculateFilenameSimilarity(searchKeyword, subtitle.name);
+                        
+                        const response = await fetch('/api/evaluate-subtitle', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                url: subtitle.url,
+                                ext: subtitle.ext || 'srt'
+                            })
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.success && data.result.available) {
+                            const qualityScore = data.result.overall_score;
+                            const finalScore = filenameScore * 0.4 + qualityScore * 0.6;
+                            console.log(`评估字幕: ${subtitle.name} -> 匹配度:${filenameScore.toFixed(0)}% 质量分:${qualityScore.toFixed(0)} 综合分:${finalScore.toFixed(2)}`);
+                            return {
+                                subtitle: subtitle,
+                                filename_score: filenameScore,
+                                quality_score: qualityScore,
+                                score: finalScore,
+                                is_machine: data.result.is_machine_translation,
+                                fluency: data.result.fluency,
+                                accuracy: data.result.accuracy,
+                                summary: data.result.summary
+                            };
+                        } else if (data.result && data.result.error) {
+                            console.log(`跳过字幕: ${subtitle.name} (${data.result.summary || data.result.error})`);
+                        }
+                    } catch (e) {
+                        console.error('评估失败:', subtitle.name, e);
+                    }
+                    return null;
+                };
+                
+                const updateProgress = () => {
+                    completed++;
+                    const progressBar = document.getElementById('pickBestProgress');
+                    const statusText = document.getElementById('pickBestStatus');
+                    if (progressBar) {
+                        progressBar.style.width = `${(completed / actualTotal) * 100}%`;
+                    }
+                    if (statusText) {
+                        statusText.textContent = `评估进度: ${completed}/${actualTotal}`;
+                    }
+                };
+                
+                for (let i = 0; i < subtitlesToEvaluate.length; i += concurrency) {
+                    const batch = subtitlesToEvaluate.slice(i, i + concurrency);
+                    const batchResults = await Promise.all(
+                        batch.map(async (subtitle) => {
+                            const result = await evaluateSubtitle(subtitle);
+                            updateProgress();
+                            return result;
+                        })
+                    );
+                    
+                    for (const result of batchResults) {
+                        if (result) {
+                            results.push(result);
+                        }
+                    }
+                }
+                
+                const loadingDiv = document.getElementById('pickBestLoading');
+                if (loadingDiv) loadingDiv.remove();
+                
+                if (results.length === 0) {
+                    alert('AI评估失败，未能获取有效的评估结果');
+                    return;
+                }
+                
+                results.sort((a, b) => b.score - a.score);
+                const best = results[0];
+                
+                const resultHtml = `
+                    <div class="alert alert-success" id="pickBestResult">
+                        <h5 class="alert-heading">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-trophy me-2" viewBox="0 0 16 16">
+                                <path d="M2.5.5A.5.5 0 0 1 3 0h10a.5.5 0 0 1 .5.5c0 .538-.012 1.05-.034 1.536a3 3 0 1 1-1.133 5.89c-.79 1.865-1.878 2.777-2.833 3.011v2.173l1.425.356c.194.048.377.135.537.255L13.3 15.1a.5.5 0 0 1-.3.9H3a.5.5 0 0 1-.3-.9l1.838-1.379c.16-.12.343-.207.537-.255L6.5 13.11v-2.173c-.955-.234-2.043-1.146-2.833-3.012a3 3 0 1 1-1.132-5.89A33.076 33.076 0 0 1 2.5.5zm.099 2.54a2 2 0 0 0 .72 3.06c.232.162.478.3.727.418.207.108.415.2.62.28.094-.266.19-.554.284-.872.112-.393.22-.823.32-1.282.1-.458.183-.927.248-1.386a29.62 29.62 0 0 0-2.719.782zm7.742 0a29.62 29.62 0 0 0-2.72-.782c.066.459.149.928.248 1.386.1.459.208.889.32 1.282.094.318.19.606.284.872.206-.08.413-.172.62-.28.25-.118.496-.256.728-.418a2 2 0 0 0 .72-3.06z"/>
+                            </svg>
+                            最佳字幕推荐
+                        </h5>
+                        <hr>
+                        <div class="row">
+                            <div class="col-md-8">
+                                <p><strong>名称:</strong> ${best.subtitle.name}</p>
+                                <p><strong>匹配度:</strong> <span class="badge bg-primary">${best.filename_score.toFixed(0)}%</span> &nbsp; <strong>质量分:</strong> <span class="badge bg-info">${best.quality_score.toFixed(0)}</span> &nbsp; <strong>综合分:</strong> 
+                                    <span class="badge ${best.score >= 70 ? 'bg-success' : best.score >= 50 ? 'bg-warning' : 'bg-danger'}">${best.score.toFixed(1)}</span>
+                                    ${best.is_machine ? '<span class="badge bg-secondary ms-1">机器翻译</span>' : '<span class="badge bg-info ms-1">人工翻译</span>'}
+                                </p>
+                                <p><strong>流畅度:</strong> ${best.fluency}/10 &nbsp; <strong>准确度:</strong> ${best.accuracy}/10</p>
+                                <p><strong>评价:</strong> ${best.summary || '无'}</p>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <button class="btn btn-success" onclick="downloadSubtitle('${best.subtitle.url}', '${best.subtitle.name}', '${best.subtitle.ext}')">
+                                    下载此字幕
+                                </button>
+                            </div>
+                        </div>
+                        <hr>
+                        <details>
+                            <summary class="cursor-pointer">查看所有评估结果 (${results.length}个)</summary>
+                            <table class="table table-sm mt-2">
+                                <thead><tr><th>排名</th><th>名称</th><th>匹配度</th><th>质量分</th><th>综合分</th><th>类型</th><th>操作</th></tr></thead>
+                                <tbody>
+                                    ${results.map((r, i) => `
+                                        <tr class="${i === 0 ? 'table-success' : ''}">
+                                            <td>${i + 1}</td>
+                                            <td>${r.subtitle.name}</td>
+                                            <td><span class="badge bg-primary">${r.filename_score.toFixed(0)}%</span></td>
+                                            <td><span class="badge bg-info">${r.quality_score.toFixed(0)}</span></td>
+                                            <td><span class="badge ${r.score >= 70 ? 'bg-success' : r.score >= 50 ? 'bg-warning' : 'bg-danger'}">${r.score.toFixed(1)}</span></td>
+                                            <td>${r.is_machine ? '<span class="badge bg-secondary">机翻</span>' : '<span class="badge bg-info">人工</span>'}</td>
+                                            <td><button class="btn btn-sm btn-outline-primary" onclick="downloadSubtitle('${r.subtitle.url}', '${r.subtitle.name}', '${r.subtitle.ext}')">下载</button></td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </details>
+                    </div>
+                `;
+                
+                const existingResult = document.getElementById('pickBestResult');
+                if (existingResult) existingResult.remove();
+                
+                const table = resultsDiv.querySelector('table');
+                if (table) {
+                    table.insertAdjacentHTML('beforebegin', resultHtml);
+                } else {
+                    resultsDiv.insertAdjacentHTML('afterbegin', resultHtml);
+                }
+                
+            } catch (error) {
+                const loadingDiv = document.getElementById('pickBestLoading');
+                if (loadingDiv) loadingDiv.remove();
+                
+                console.error('挑选最佳字幕失败:', error);
+                alert('挑选失败: ' + error.message);
+            }
+        }
+        
+        async function evaluateSubtitleAI(url, ext, resultId) {
+            const resultDiv = document.getElementById(resultId);
+            
+            if (!resultDiv) {
+                console.error('Result div not found:', resultId);
+                return;
+            }
+            
+            const isTableRow = resultDiv.tagName === 'TR';
+            
+            if (isTableRow) {
+                resultDiv.style.display = '';
+                resultDiv.cells[0].innerHTML = `
+                    <div class="p-2">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        正在AI评估中...
+                    </div>
+                `;
+            } else {
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = `
+                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    正在AI评估中...
+                `;
+            }
+            
+            try {
+                const response = await fetch('/api/evaluate-subtitle', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        url: url,
+                        ext: ext
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.result.available) {
+                    const r = data.result;
+                    const level = r.overall_score >= 70 ? '🟢 优质' : 
+                                  r.overall_score >= 50 ? '🟡 一般' : 
+                                  r.overall_score >= 30 ? '🟠 较差' : '🔴 很差';
+                    
+                    let html = `
+                        <div class="p-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <strong>AI评估结果</strong>
+                                <span class="badge ${r.overall_score >= 70 ? 'bg-success' : r.overall_score >= 50 ? 'bg-warning' : 'bg-danger'}">
+                                    ${r.overall_score}/100 ${level}
+                                </span>
+                            </div>
+                            <div class="mt-2">
+                                <small>
+                                    流畅度: ${r.fluency}/10 | 
+                                    准确度: ${r.accuracy}/10 | 
+                                    本地化: ${r.localization}/10 | 
+                                    专业性: ${r.professionalism}/10
+                                </small>
+                            </div>
+                            <div class="mt-1">
+                                <small>
+                                    <strong>机器翻译:</strong> 
+                                    <span class="${r.is_machine_translation ? 'text-danger' : 'text-success'}">
+                                        ${r.is_machine_translation ? '是' : '否'}
+                                    </span>
+                                    (置信度: ${(r.confidence * 100).toFixed(0)}%)
+                                </small>
+                            </div>
+                            ${r.issues && r.issues.length > 0 ? `
+                                <div class="mt-1">
+                                    <small><strong>问题:</strong> ${r.issues.slice(0, 3).join(', ')}</small>
+                                </div>
+                            ` : ''}
+                            <div class="mt-1">
+                                <small class="text-muted">${r.summary}</small>
+                            </div>
+                            <div class="mt-1">
+                                <small class="text-muted">评估耗时: ${r.elapsed_time.toFixed(1)}秒</small>
+                            </div>
+                        </div>
+                    `;
+                    
+                    if (isTableRow) {
+                        resultDiv.cells[0].innerHTML = html;
+                    } else {
+                        resultDiv.innerHTML = html;
+                    }
+                } else {
+                    const errorHtml = `
+                        <div class="alert alert-warning py-1 m-2">
+                            <small>AI评估不可用: ${data.result?.error || data.error || '请检查AI配置'}</small>
+                        </div>
+                    `;
+                    if (isTableRow) {
+                        resultDiv.cells[0].innerHTML = errorHtml;
+                    } else {
+                        resultDiv.innerHTML = errorHtml;
+                    }
+                }
+            } catch (error) {
+                console.error('AI评估失败:', error);
+                const errorHtml = `
+                    <div class="alert alert-danger py-1 m-2">
+                        <small>AI评估失败: ${error.message}</small>
+                    </div>
+                `;
+                if (isTableRow) {
+                    resultDiv.cells[0].innerHTML = errorHtml;
+                } else {
+                    resultDiv.innerHTML = errorHtml;
+                }
+            }
+        }
+        
+        function addToHistory(name, path) {
+            const historyItem = {
+                name: name,
+                path: path,
+                time: new Date().toLocaleString()
+            };
+            
+            fetch('/api/history', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(historyItem)
+            }).then(() => {
+                loadHistory();
+            }).catch(e => {
+                console.error('添加历史记录失败:', e);
+            });
+        }
+        
+        function clearHistory() {
+            if (downloadHistory.length === 0) {
+                alert('暂无下载历史');
+                return;
+            }
+            
+            const modal = new bootstrap.Modal(document.getElementById('confirmClearModal'));
+            modal.show();
+        }
+        
+        function doClearHistory() {
+            fetch('/api/history', {
+                method: 'DELETE'
+            }).then(() => {
+                downloadHistory = [];
+                updateHistoryDisplay();
+            }).catch(e => {
+                console.error('清空历史失败:', e);
+            });
+        }
+        
+        function updateHistoryDisplay() {
+            const historyDiv = document.getElementById('downloadHistory');
+            
+            if (downloadHistory.length === 0) {
+                historyDiv.innerHTML = `
+                    <div class="alert alert-info">
+                        暂无下载历史
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = `
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>文件名</th>
+                            <th>保存路径</th>
+                            <th>下载时间</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            downloadHistory.forEach(item => {
+                html += `
+                    <tr>
+                        <td>${item.name}</td>
+                        <td>${item.path}</td>
+                        <td>${item.time}</td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                    </tbody>
+                </table>
+            `;
+            
+            historyDiv.innerHTML = html;
+        }
+        
+        // 格式化文件大小
+        function formatSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        // 转义HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // 全选视频
+        function selectAllVideos() {
+            const checkboxes = document.querySelectorAll('.video-checkbox');
+            checkboxes.forEach(cb => cb.checked = true);
+            document.getElementById('selectAllCheckbox').checked = true;
+        }
+        
+        // 取消全选视频
+        function deselectAllVideos() {
+            const checkboxes = document.querySelectorAll('.video-checkbox');
+            checkboxes.forEach(cb => cb.checked = false);
+            document.getElementById('selectAllCheckbox').checked = false;
+        }
+        
+        // 切换所有视频选择
+        function toggleAllVideos(checked) {
+            const checkboxes = document.querySelectorAll('.video-checkbox');
+            checkboxes.forEach(cb => cb.checked = checked);
+        }
+        
+        async function batchDownload() {
+            const checkboxes = document.querySelectorAll('.video-checkbox:checked');
+            
+            if (checkboxes.length === 0) {
+                alert('请至少选择一个视频文件');
+                return;
+            }
+            
+            const videos = [];
+            checkboxes.forEach(cb => {
+                videos.push({
+                    name: cb.getAttribute('data-name')
+                });
+            });
+            
+            const useAi = document.getElementById('batchUseAi').checked;
+            
+            const videoListDiv = document.getElementById('videoList');
+            const originalContent = videoListDiv.innerHTML;
+            
+            const aiMsg = useAi ? '（使用AI评估选择最优字幕）' : '';
+            videoListDiv.innerHTML = `
+                <div class="alert alert-info">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    正在批量下载字幕，请稍候... (${videos.length} 个视频) ${aiMsg}
+                </div>
+            `;
+            
+            try {
+                const response = await fetch('/api/batch-download', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        videos: videos,
+                        use_ai: useAi
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayBatchDownloadResult(result, originalContent);
+                } else {
+                    alert('批量下载失败：' + result.error);
+                    videoListDiv.innerHTML = originalContent;
+                }
+            } catch (error) {
+                console.error('批量下载失败:', error);
+                alert('批量下载失败：' + error.message);
+                videoListDiv.innerHTML = originalContent;
+            }
+        }
+        
+        // 显示批量下载结果
+        function displayBatchDownloadResult(result, originalContent) {
+            const videoListDiv = document.getElementById('videoList');
+            const aiEnabled = result.ai_enabled;
+            
+            let tableHeaders = `
+                <tr>
+                    <th>视频文件</th>
+                    <th>字幕文件</th>
+                    <th>评分</th>
+                    ${aiEnabled ? '<th>AI评分</th><th>机翻</th>' : ''}
+                    <th>状态</th>
+                    <th>详情</th>
+                </tr>
+            `;
+            
+            let html = `
+                <div class="alert alert-success">
+                    批量下载完成！成功: ${result.success_count}, 失败: ${result.fail_count}
+                    ${aiEnabled ? '<span class="badge bg-info ms-2">AI选择</span>' : ''}
+                </div>
+                <table class="table table-hover">
+                    <thead>
+                        ${tableHeaders}
+                    </thead>
+                    <tbody>
+            `;
+            
+            result.results.forEach(item => {
+                let statusBadge = '';
+                let subtitleName = '-';
+                let score = '-';
+                let aiScore = '-';
+                let isMt = '-';
+                let detail = '-';
+                
+                if (item.status === 'success') {
+                    statusBadge = '<span class="badge bg-success">成功</span>';
+                    subtitleName = item.subtitle || '-';
+                    score = item.score ? item.score.toFixed(1) : '-';
+                    
+                    if (aiEnabled && item.ai_score !== undefined) {
+                        const aiScoreVal = item.ai_score;
+                        aiScore = `<span class="badge ${aiScoreVal >= 70 ? 'bg-success' : aiScoreVal >= 50 ? 'bg-warning' : 'bg-danger'}">${aiScoreVal}</span>`;
+                        isMt = item.is_machine_translation ? 
+                            '<span class="text-danger">是</span>' : 
+                            '<span class="text-success">否</span>';
+                    }
+                    
+                    detail = item.file_path || '-';
+                    
+                    addToHistory(item.subtitle || item.video, item.file_path);
+                } else if (item.status === 'not_found') {
+                    statusBadge = '<span class="badge bg-warning">未找到</span>';
+                    detail = '未找到匹配的字幕';
+                } else {
+                    statusBadge = '<span class="badge bg-danger">失败</span>';
+                    detail = item.error || '未知错误';
+                }
+                
+                html += `
+                    <tr>
+                        <td>${item.video}</td>
+                        <td>${subtitleName}</td>
+                        <td>${score}</td>
+                        ${aiEnabled ? `<td>${aiScore}</td><td>${isMt}</td>` : ''}
+                        <td>${statusBadge}</td>
+                        <td><small>${detail}</small></td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                    </tbody>
+                </table>
+                <button class="btn btn-secondary" onclick="restoreVideoList()">返回视频列表</button>
+            `;
+            
+            videoListDiv.innerHTML = html;
+        }
+        
+        function restoreVideoList() {
+            scanVideos();
+        }
+        
+        // 目录监控功能
+        async function loadWatcherStatus() {
+            try {
+                const response = await fetch('/api/watcher/status');
+                const data = await response.json();
+                
+                const statusBadge = document.getElementById('watcherStatus');
+                const startBtn = document.getElementById('startWatcherBtn');
+                const stopBtn = document.getElementById('stopWatcherBtn');
+                const unavailableAlert = document.getElementById('watcherUnavailable');
+                
+                if (!data.available) {
+                    unavailableAlert.style.display = 'block';
+                    startBtn.disabled = true;
+                    statusBadge.className = 'badge bg-secondary me-2';
+                    statusBadge.textContent = '不可用';
+                    return;
+                }
+                
+                unavailableAlert.style.display = 'none';
+                startBtn.disabled = false;
+                
+                if (data.running) {
+                    statusBadge.className = 'badge bg-success me-2';
+                    statusBadge.textContent = '运行中';
+                    startBtn.style.display = 'none';
+                    stopBtn.style.display = 'inline-block';
+                } else {
+                    statusBadge.className = 'badge bg-secondary me-2';
+                    statusBadge.textContent = '未启动';
+                    startBtn.style.display = 'inline-block';
+                    stopBtn.style.display = 'none';
+                }
+                
+                updateWatchDirectoryList(data.watch_directories);
+                updateWatcherEventLog(data.event_log);
+                
+            } catch (error) {
+                console.error('加载监控状态失败:', error);
+            }
+        }
+        
+        async function startWatcher() {
+            try {
+                const response = await fetch('/api/watcher/start', { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    loadWatcherStatus();
+                } else {
+                    alert('启动失败: ' + data.error);
+                }
+            } catch (error) {
+                console.error('启动监控失败:', error);
+                alert('启动失败: ' + error.message);
+            }
+        }
+        
+        async function stopWatcher() {
+            try {
+                const response = await fetch('/api/watcher/stop', { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    loadWatcherStatus();
+                }
+            } catch (error) {
+                console.error('停止监控失败:', error);
+            }
+        }
+        
+        async function addWatchDirectory() {
+            const path = document.getElementById('newWatchPath').value.trim();
+            
+            if (!path) {
+                alert('请输入监控目录路径');
+                return;
+            }
+            
+            const outputDir = document.getElementById('newWatchOutput').value.trim();
+            const useAi = document.getElementById('newWatchUseAi').checked;
+            const enabled = document.getElementById('newWatchEnabled').checked;
+            
+            const fileTypesSelect = document.getElementById('newWatchFileTypes');
+            const fileTypes = [];
+            for (let option of fileTypesSelect.selectedOptions) {
+                fileTypes.push(option.value);
+            }
+            
+            if (fileTypes.length === 0) {
+                alert('请选择至少一种文件类型');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/watcher/directories', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        path: path,
+                        output_dir: outputDir,
+                        use_ai: useAi,
+                        enabled: enabled,
+                        file_types: fileTypes
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('newWatchPath').value = '';
+                    document.getElementById('newWatchOutput').value = '';
+                    loadWatcherStatus();
+                } else {
+                    alert('添加失败: ' + data.error);
+                }
+            } catch (error) {
+                console.error('添加目录失败:', error);
+                alert('添加失败: ' + error.message);
+            }
+        }
+        
+        async function removeWatchDirectory(path) {
+            if (!confirm('确定要移除此监控目录吗？')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/watcher/directories', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: path })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    loadWatcherStatus();
+                } else {
+                    alert('移除失败: ' + data.message);
+                }
+            } catch (error) {
+                console.error('移除目录失败:', error);
+            }
+        }
+        
+        async function toggleWatchDirectory(path, enabled) {
+            try {
+                const response = await fetch('/api/watcher/directories', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: path, enabled: enabled })
+                });
+                
+                const data = await response.json();
+                
+                if (!data.success) {
+                    loadWatcherStatus();
+                }
+            } catch (error) {
+                console.error('更新目录失败:', error);
+            }
+        }
+        
+        function updateWatchDirectoryList(directories) {
+            const listDiv = document.getElementById('watchDirectoryList');
+            
+            if (!directories || directories.length === 0) {
+                listDiv.innerHTML = '<div class="text-muted">暂无监控目录</div>';
+                return;
+            }
+            
+            let html = '<div class="table-responsive"><table class="table table-hover table-sm">';
+            html += '<thead><tr><th>目录</th><th>输出目录</th><th>文件类型</th><th>AI</th><th>状态</th><th>操作</th></tr></thead><tbody>';
+            
+            directories.forEach(dir => {
+                html += `
+                    <tr>
+                        <td><small>${dir.path}</small></td>
+                        <td><small>${dir.output_dir || '默认'}</small></td>
+                        <td><small>${dir.file_types ? dir.file_types.slice(0, 3).join(', ') + (dir.file_types.length > 3 ? '...' : '') : '全部'}</small></td>
+                        <td>${dir.use_ai ? '<span class="badge bg-info">是</span>' : '<span class="badge bg-secondary">否</span>'}</td>
+                        <td>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" ${dir.enabled ? 'checked' : ''} onchange="toggleWatchDirectory('${dir.path}', this.checked)">
+                            </div>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-danger" onclick="removeWatchDirectory('${dir.path}')">移除</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table></div>';
+            listDiv.innerHTML = html;
+        }
+        
+        function updateWatcherEventLog(events) {
+            const logDiv = document.getElementById('watcherEventLog');
+            
+            if (!events || events.length === 0) {
+                logDiv.innerHTML = '<div class="text-muted">暂无事件</div>';
+                return;
+            }
+            
+            let html = '<table class="table table-sm">';
+            html += '<thead><tr><th>时间</th><th>类型</th><th>状态</th><th>消息</th></tr></thead><tbody>';
+            
+            events.slice().reverse().forEach(event => {
+                const statusClass = event.status === 'success' ? 'text-success' : 
+                                   event.status === 'error' ? 'text-danger' : 
+                                   event.status === 'pending' ? 'text-warning' : 'text-muted';
+                html += `
+                    <tr>
+                        <td><small>${event.timestamp}</small></td>
+                        <td><small>${event.event_type}</small></td>
+                        <td><small class="${statusClass}">${event.status}</small></td>
+                        <td><small>${event.message}</small></td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            logDiv.innerHTML = html;
+        }
+        
+        async function refreshWatcherEvents() {
+            try {
+                const response = await fetch('/api/watcher/events?limit=50');
+                const data = await response.json();
+                
+                if (data.success) {
+                    updateWatcherEventLog(data.events);
+                }
+            } catch (error) {
+                console.error('刷新事件日志失败:', error);
+            }
+        }
+        
+        document.getElementById('watcher-tab').addEventListener('shown.bs.tab', function() {
+            loadWatcherStatus();
+        });
+        
+        document.getElementById('history-tab').addEventListener('shown.bs.tab', function() {
+            loadHistory();
+        });
+        
+        let watcherRefreshInterval = null;
+        
+        document.getElementById('watcher-tab').addEventListener('shown.bs.tab', function() {
+            if (!watcherRefreshInterval) {
+                watcherRefreshInterval = setInterval(refreshWatcherEvents, 5000);
+            }
+        });
+        
+        document.getElementById('watcher-tab').addEventListener('hidden.bs.tab', function() {
+            if (watcherRefreshInterval) {
+                clearInterval(watcherRefreshInterval);
+                watcherRefreshInterval = null;
+            }
+        });
+        
+        // ==================== SMB Functions ====================
+        let smbVideos = [];
+        
+        async function loadSmbConfig() {
+            try {
+                const response = await fetch('/api/smb/config');
+                const data = await response.json();
+                if (data.success && data.config) {
+                    const cfg = data.config;
+                    document.getElementById('smbHost').value = cfg.host || '';
+                    document.getElementById('smbPort').value = cfg.port || 445;
+                    document.getElementById('smbShare').value = cfg.share || '';
+                    document.getElementById('smbUser').value = cfg.user || '';
+                    document.getElementById('smbPassword').value = cfg.password || '';
+                    document.getElementById('smbDir').value = cfg.dir_path || '';
+                    document.getElementById('smbOutputDir').value = cfg.output_dir || '';
+                    document.getElementById('smbRecursive').checked = cfg.recursive !== false;
+                    document.getElementById('smbUseAi').checked = cfg.use_ai !== false;
+                    document.getElementById('smbSaveToVideoDir').checked = cfg.save_to_video_dir === true;
+                    
+                    if (cfg.file_types) {
+                        const select = document.getElementById('smbFileTypes');
+                        const existingValues = Array.from(select.options).map(o => o.value);
+                        
+                        for (const ft of cfg.file_types) {
+                            if (!existingValues.includes(ft)) {
+                                const option = document.createElement('option');
+                                option.value = ft;
+                                option.textContent = ft;
+                                select.appendChild(option);
+                            }
+                        }
+                        
+                        for (let i = 0; i < select.options.length; i++) {
+                            select.options[i].selected = cfg.file_types.includes(select.options[i].value);
+                        }
+                    }
+                    
+                    if (cfg.skip_built_in_sub !== undefined) {
+                        document.getElementById('smbSkipBuiltInSub').checked = cfg.skip_built_in_sub;
+                    }
+                    
+                    if (cfg.enable_size_filter !== undefined) {
+                        document.getElementById('smbEnableSizeFilter').checked = cfg.enable_size_filter;
+                        document.getElementById('sizeFilterConfig').style.display = cfg.enable_size_filter ? 'block' : 'none';
+                    }
+                    
+                    const filterBody = document.getElementById('sizeFilterBody');
+                    filterBody.innerHTML = '';
+                    
+                    if (cfg.size_filters && Array.isArray(cfg.size_filters)) {
+                        for (const sf of cfg.size_filters) {
+                            addSizeFilterRow(sf.file_type, sf.min_size, sf.max_size);
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('加载SMB配置失败:', e);
+            }
+        }
+        
+        let sizeFilterIndex = 0;
+        
+        function addSizeFilterRow(fileType = '', minSize = 0, maxSize = 0) {
+            const tbody = document.getElementById('sizeFilterBody');
+            const fileTypesSelect = document.getElementById('smbFileTypes');
+            const availableTypes = Array.from(fileTypesSelect.selectedOptions).map(o => o.value);
+            
+            const row = document.createElement('tr');
+            row.id = `sizeFilterRow_${sizeFilterIndex}`;
+            
+            let typeOptions = '<option value="">选择类型</option>';
+            for (const t of availableTypes) {
+                typeOptions += `<option value="${t}" ${t === fileType ? 'selected' : ''}>${t}</option>`;
+            }
+            
+            row.innerHTML = `
+                <td>
+                    <select class="form-select form-select-sm size-filter-type">
+                        ${typeOptions}
+                    </select>
+                </td>
+                <td>
+                    <input type="number" class="form-control form-control-sm size-filter-min" value="${minSize}" min="0">
+                </td>
+                <td>
+                    <input type="number" class="form-control form-control-sm size-filter-max" value="${maxSize}" min="0">
+                </td>
+                <td>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeSizeFilterRow(${sizeFilterIndex})">删除</button>
+                </td>
+            `;
+            
+            tbody.appendChild(row);
+            sizeFilterIndex++;
+        }
+        
+        function removeSizeFilterRow(index) {
+            const row = document.getElementById(`sizeFilterRow_${index}`);
+            if (row) {
+                row.remove();
+            }
+        }
+        
+        function getSizeFilters() {
+            const filters = [];
+            const rows = document.querySelectorAll('#sizeFilterBody tr');
+            
+            for (const row of rows) {
+                const typeSelect = row.querySelector('.size-filter-type');
+                const minInput = row.querySelector('.size-filter-min');
+                const maxInput = row.querySelector('.size-filter-max');
+                
+                if (typeSelect && minInput && maxInput) {
+                    const fileType = typeSelect.value;
+                    if (fileType) {
+                        filters.push({
+                            file_type: fileType,
+                            min_size: parseInt(minInput.value) || 0,
+                            max_size: parseInt(maxInput.value) || 0
+                        });
+                    }
+                }
+            }
+            
+            return filters;
+        }
+        
+        async function saveSmbConfig() {
+            const config = {
+                host: document.getElementById('smbHost').value,
+                port: parseInt(document.getElementById('smbPort').value) || 445,
+                share: document.getElementById('smbShare').value,
+                user: document.getElementById('smbUser').value,
+                password: document.getElementById('smbPassword').value,
+                dir_path: document.getElementById('smbDir').value,
+                output_dir: document.getElementById('smbOutputDir').value,
+                file_types: Array.from(document.getElementById('smbFileTypes').selectedOptions).map(o => o.value),
+                recursive: document.getElementById('smbRecursive').checked,
+                use_ai: document.getElementById('smbUseAi').checked,
+                save_to_video_dir: document.getElementById('smbSaveToVideoDir').checked,
+                skip_built_in_sub: document.getElementById('smbSkipBuiltInSub').checked,
+                enable_size_filter: document.getElementById('smbEnableSizeFilter').checked,
+                size_filters: getSizeFilters()
+            };
+            
+            try {
+                const response = await fetch('/api/smb/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                const data = await response.json();
+                if (data.success) {
+                    alert('配置已保存');
+                } else {
+                    alert('保存失败: ' + data.error);
+                }
+            } catch (e) {
+                alert('保存失败: ' + e.message);
+            }
+        }
+        
+        async function testSmbConnection() {
+            const statusBadge = document.getElementById('smbStatus');
+            statusBadge.className = 'badge bg-warning me-2';
+            statusBadge.textContent = '连接中...';
+            
+            const config = {
+                host: document.getElementById('smbHost').value,
+                port: parseInt(document.getElementById('smbPort').value) || 445,
+                share: document.getElementById('smbShare').value,
+                user: document.getElementById('smbUser').value,
+                password: document.getElementById('smbPassword').value
+            };
+            
+            if (!config.host || !config.share || !config.user) {
+                statusBadge.className = 'badge bg-danger me-2';
+                statusBadge.textContent = '配置不完整';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/smb/test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    statusBadge.className = 'badge bg-success me-2';
+                    statusBadge.textContent = '已连接';
+                    alert('连接成功！可用共享: ' + data.shares.join(', '));
+                } else {
+                    statusBadge.className = 'badge bg-danger me-2';
+                    statusBadge.textContent = '连接失败';
+                    alert('连接失败: ' + data.error);
+                }
+            } catch (e) {
+                statusBadge.className = 'badge bg-danger me-2';
+                statusBadge.textContent = '连接失败';
+                alert('连接失败: ' + e.message);
+            }
+        }
+        
+        async function scanSmbVideos() {
+            const listDiv = document.getElementById('smbVideoList');
+            const countSpan = document.getElementById('smbVideoCount');
+            const downloadBtn = document.getElementById('smbDownloadAllBtn');
+            
+            listDiv.innerHTML = '<div class="text-center"><div class="spinner-border spinner-border-sm"></div> 扫描中...</div>';
+            
+            const enableSizeFilter = document.getElementById('smbEnableSizeFilter').checked;
+            const skipBuiltInSub = document.getElementById('smbSkipBuiltInSub').checked;
+            
+            const config = {
+                host: document.getElementById('smbHost').value,
+                port: parseInt(document.getElementById('smbPort').value) || 445,
+                share: document.getElementById('smbShare').value,
+                user: document.getElementById('smbUser').value,
+                password: document.getElementById('smbPassword').value,
+                dir_path: document.getElementById('smbDir').value,
+                file_types: Array.from(document.getElementById('smbFileTypes').selectedOptions).map(o => o.value),
+                recursive: document.getElementById('smbRecursive').checked,
+                skip_built_in_sub: skipBuiltInSub,
+                enable_size_filter: enableSizeFilter,
+                size_filters: enableSizeFilter ? getSizeFilters() : []
+            };
+            
+            if (!config.host || !config.share) {
+                listDiv.innerHTML = '<div class="text-danger">请填写服务器地址和共享名称</div>';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/smb/scan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    smbVideos = data.videos;
+                    countSpan.textContent = `共 ${data.count} 个视频`;
+                    downloadBtn.disabled = data.count === 0;
+                    
+                    if (data.count === 0) {
+                        listDiv.innerHTML = '<div class="text-muted">未找到视频文件</div>';
+                    } else {
+                        let html = '<table class="table table-sm table-hover"><thead><tr><th><input type="checkbox" id="smbSelectAll" onchange="toggleAllSmbCheckboxes()"></th><th>文件名</th><th>路径</th><th>大小</th></tr></thead><tbody>';
+                        for (const v of data.videos) {
+                            const size = v.size ? (v.size / 1024 / 1024).toFixed(1) + ' MB' : '-';
+                            html += `<tr>
+                                <td><input type="checkbox" class="smb-video-check" data-path="${v.path}" checked></td>
+                                <td>${v.name}</td>
+                                <td><small>${v.path}</small></td>
+                                <td>${size}</td>
+                            </tr>`;
+                        }
+                        html += '</tbody></table>';
+                        listDiv.innerHTML = html;
+                    }
+                } else {
+                    listDiv.innerHTML = `<div class="text-danger">扫描失败: ${data.error}</div>`;
+                }
+            } catch (e) {
+                listDiv.innerHTML = `<div class="text-danger">扫描失败: ${e.message}</div>`;
+            }
+        }
+        
+        function toggleAllSmbCheckboxes() {
+            const selectAll = document.getElementById('smbSelectAll');
+            const checkboxes = document.querySelectorAll('.smb-video-check');
+            checkboxes.forEach(cb => cb.checked = selectAll.checked);
+        }
+        
+        function selectAllSmbVideos() {
+            const checkboxes = document.querySelectorAll('.smb-video-check');
+            checkboxes.forEach(cb => cb.checked = true);
+            const selectAll = document.getElementById('smbSelectAll');
+            if (selectAll) selectAll.checked = true;
+        }
+        
+        function deselectAllSmbVideos() {
+            const checkboxes = document.querySelectorAll('.smb-video-check');
+            checkboxes.forEach(cb => cb.checked = false);
+            const selectAll = document.getElementById('smbSelectAll');
+            if (selectAll) selectAll.checked = false;
+        }
+        
+        function getSelectedSmbVideos() {
+            const checkboxes = document.querySelectorAll('.smb-video-check:checked');
+            return Array.from(checkboxes).map(cb => cb.dataset.path);
+        }
+        
+        function toggleSizeFilter() {
+            const enabled = document.getElementById('smbEnableSizeFilter').checked;
+            const config = document.getElementById('sizeFilterConfig');
+            config.style.display = enabled ? 'block' : 'none';
+        }
+        
+        async function downloadSmbSelected() {
+            const logDiv = document.getElementById('smbDownloadLog');
+            const downloadBtn = document.getElementById('smbDownloadAllBtn');
+            
+            const selectedVideos = getSelectedSmbVideos();
+            if (selectedVideos.length === 0) {
+                alert('请先选择要下载字幕的视频');
+                return;
+            }
+            
+            downloadBtn.disabled = true;
+            downloadBtn.textContent = '下载中...';
+            logDiv.innerHTML = `<div class="text-info">正在为 ${selectedVideos.length} 个视频下载字幕...</div>`;
+            
+            const config = {
+                host: document.getElementById('smbHost').value,
+                port: parseInt(document.getElementById('smbPort').value) || 445,
+                share: document.getElementById('smbShare').value,
+                user: document.getElementById('smbUser').value,
+                password: document.getElementById('smbPassword').value,
+                dir_path: document.getElementById('smbDir').value,
+                output_dir: document.getElementById('smbOutputDir').value,
+                file_types: Array.from(document.getElementById('smbFileTypes').selectedOptions).map(o => o.value),
+                recursive: document.getElementById('smbRecursive').checked,
+                use_ai: document.getElementById('smbUseAi').checked,
+                save_to_video_dir: document.getElementById('smbSaveToVideoDir').checked,
+                skip_built_in_sub: document.getElementById('smbSkipBuiltInSub').checked,
+                selected_videos: selectedVideos
+            };
+            
+            try {
+                const response = await fetch('/api/smb/download', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    const success = data.results.filter(r => r.status === 'success').length;
+                    const failed = data.results.filter(r => r.status !== 'success').length;
+                    
+                    let html = `<div class="alert alert-success">下载完成！成功: ${success}, 失败: ${failed}</div>`;
+                    html += '<table class="table table-sm"><thead><tr><th>视频</th><th>状态</th><th>字幕</th></tr></thead><tbody>';
+                    
+                    for (const r of data.results) {
+                        const statusClass = r.status === 'success' ? 'text-success' : 'text-danger';
+                        const statusText = r.status === 'success' ? '✓ 成功' : '✗ ' + (r.message || r.status);
+                        html += `<tr><td>${r.video}</td><td class="${statusClass}">${statusText}</td><td>${r.subtitle || '-'}</td></tr>`;
+                    }
+                    
+                    html += '</tbody></table>';
+                    logDiv.innerHTML = html;
+                } else {
+                    logDiv.innerHTML = `<div class="alert alert-danger">下载失败: ${data.error}</div>`;
+                }
+            } catch (e) {
+                logDiv.innerHTML = `<div class="alert alert-danger">下载失败: ${e.message}</div>`;
+            }
+            
+            downloadBtn.disabled = false;
+            downloadBtn.textContent = '批量下载选中';
+        }
+        
+        function clearSmbLog() {
+            document.getElementById('smbDownloadLog').innerHTML = '<div class="text-muted">暂无日志</div>';
+        }
+        
+        function addFileTypeToSelect(selectId, inputId) {
+            const select = document.getElementById(selectId);
+            const input = document.getElementById(inputId);
+            let value = input.value.trim().toLowerCase();
+            
+            if (!value) {
+                return;
+            }
+            
+            if (!value.startsWith('.')) {
+                value = '.' + value;
+            }
+            
+            for (let i = 0; i < select.options.length; i++) {
+                if (select.options[i].value === value) {
+                    select.options[i].selected = true;
+                    input.value = '';
+                    return;
+                }
+            }
+            
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = value;
+            option.selected = true;
+            select.appendChild(option);
+            input.value = '';
+        }
+        
+        function addWatchFileType() {
+            addFileTypeToSelect('newWatchFileTypes', 'newWatchCustomType');
+        }
+        
+        function addSmbFileType() {
+            addFileTypeToSelect('smbFileTypes', 'smbCustomType');
+        }
+        
+        document.getElementById('smb-tab').addEventListener('shown.bs.tab', function() {
+            loadSmbConfig();
+        });
+    </script>
+    
+    <div class="modal fade" id="confirmClearModal" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">确认清空</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    确定要清空所有下载历史吗？
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-danger" data-bs-dismiss="modal" onclick="doClearHistory()">确认清空</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

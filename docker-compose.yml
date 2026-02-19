@@ -1,0 +1,11 @@
+services:
+  thunder-subtitle:
+    image: fgwxh123/thunder-subtitle
+    ports:
+      - "8010:8010"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8010
+    volumes:
+      - ./subtitles:/app/subtitles
+    restart: unless-stopped

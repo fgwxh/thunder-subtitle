@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+dist/
+build/
+
+# 本地运行产物（不要提交）
+out/
+subs/
+.env
+ui_config.json
