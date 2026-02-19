@@ -103,6 +103,19 @@ def load_config():
                 config.update(loaded_config)
         except Exception as e:
             print(f"Failed to load config: {e}")
+    else:
+        # Check if example config exists
+        example_config_file = BASE_DIR / "ui_config.example.json"
+        if example_config_file.exists():
+            try:
+                with open(example_config_file, 'r', encoding='utf-8') as f:
+                    example_config = json.load(f)
+                    config.update(example_config)
+                # Save to ui_config.json
+                save_config()
+                print("Initialized config from ui_config.example.json")
+            except Exception as e:
+                print(f"Failed to load example config: {e}")
 
 # Save config
 def save_config():

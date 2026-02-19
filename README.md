@@ -71,6 +71,19 @@ uv run streamlit run src/thunder_subtitle_cli/web_ui.py
 
 浏览器访问：http://localhost:8501
 
+### FastAPI Web UI（推荐，Docker部署使用）
+
+提供更轻量、更快速的Web界面，支持所有核心功能：
+
+启动命令：
+
+```bash
+uv sync
+uv run python run_fastapi_ui.py
+```
+
+浏览器访问：http://localhost:8010
+
 详细使用说明请参考 [WEB_UI_README.md](file:///d:/my%20workers/thunder-subtitle-main/WEB_UI_README.md)
 
 ### 方式二：命令行 TUI 模式
