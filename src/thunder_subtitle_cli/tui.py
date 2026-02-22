@@ -8,12 +8,12 @@ import questionary
 from rich.console import Console
 from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 
-from .core import format_item_label, resolve_out_dir, search_items
-from .formatting import print_search_table
-from .models import ThunderSubtitleItem
-from .selector import InteractiveSelector
-from .util import ensure_unique_path, sanitize_component
-from .client import ThunderClient, download_with_retries
+from thunder_subtitle_cli.core import format_item_label, resolve_out_dir, search_items
+from thunder_subtitle_cli.formatting import print_search_table
+from thunder_subtitle_cli.models import ThunderSubtitleItem
+from thunder_subtitle_cli.selector import InteractiveSelector
+from thunder_subtitle_cli.util import ensure_unique_path, sanitize_component
+from thunder_subtitle_cli.client import ThunderClient, download_with_retries
 
 
 console = Console()
@@ -216,7 +216,7 @@ def tui_batch_flow() -> None:
     async def _search(q: str) -> list[ThunderSubtitleItem]:
         items = await client.search(query=q, timeout_s=20.0)
         items = sorted(items, key=lambda x: x.score, reverse=True)
-        from .core import apply_filters
+        from thunder_subtitle_cli.core import apply_filters
 
         return apply_filters(items, min_score=min_score, lang=lang)[:limit]
 

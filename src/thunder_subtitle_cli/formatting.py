@@ -7,8 +7,8 @@ from typing import Sequence
 from rich.console import Console
 from rich.table import Table
 
-from .models import ThunderSubtitleItem
-from .util import compute_item_id
+from thunder_subtitle_cli.models import ThunderSubtitleItem
+from thunder_subtitle_cli.util import compute_item_id
 
 
 def print_search_table(items: Sequence[ThunderSubtitleItem]) -> None:

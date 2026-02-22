@@ -5,9 +5,9 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Optional
 
-from .client import ThunderClient, download_with_retries
-from .models import ThunderSubtitleItem
-from .util import ensure_unique_path, sanitize_component
+from thunder_subtitle_cli.client import ThunderClient, download_with_retries
+from thunder_subtitle_cli.models import ThunderSubtitleItem
+from thunder_subtitle_cli.util import ensure_unique_path, sanitize_component
 
 
 def apply_filters(

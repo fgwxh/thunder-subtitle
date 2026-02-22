@@ -66,8 +66,16 @@ def detect_and_convert_to_utf8(data: bytes) -> bytes:
 # Create FastAPI app
 app = FastAPI(title="Thunder Subtitle Web UI", version="1.0.0")
 
-# Configure directories
-BASE_DIR = Path(__file__).parent.parent.parent
+# Configure directories for both development and PyInstaller packaged environments
+import sys
+
+if getattr(sys, 'frozen', False):
+    # Running as packaged executable
+    BASE_DIR = Path(sys._MEIPASS)
+else:
+    # Running in development
+    BASE_DIR = Path(__file__).parent.parent.parent
+
 STATIC_DIR = BASE_DIR / "static"
 TEMPLATES_DIR = BASE_DIR / "templates"
 CONFIG_FILE = BASE_DIR / "ui_config.json"
@@ -266,6 +274,7 @@ class ConfigModel(BaseModel):
     language: str = ""
     timeout: float = 60.0
     retries: int = 2
+    video_extensions: List[str] = [".mp4", ".avi", ".mkv", ".mov", ".wmv", ".flv", ".webm", ".m4v"]
     ai_evaluator: Optional[Dict[str, Any]] = None
 
 class SearchRequest(BaseModel):
@@ -991,7 +1000,7 @@ async def scan_videos():
                 "error": "Video directory not configured"
             })
         
-        video_extensions = ['.mp4', '.avi', '.mkv', '.mov', '.wmv', '.flv', '.webm', '.m4v']
+        video_extensions = config.get("video_extensions", ['.mp4', '.avi', '.mkv', '.mov', '.wmv', '.flv', '.webm', '.m4v'])
         video_files = []
         
         video_path = Path(video_dir)
@@ -1837,7 +1846,11 @@ async def api_save_smb_config(smb_config: Dict[str, Any]):
 def run_server(host: str = "127.0.0.1", port: int = 8000):
     """Start server"""
     print(f"Starting FastAPI server...")
-    print(f"Access URL: http://{host}:{port}")
+    if host == "0.0.0.0":
+        print(f"Access URL: http://127.0.0.1:{port} (本机访问)")
+        print(f"           http://<你的本地IP>:{port} (局域网其他设备访问)")
+    else:
+        print(f"Access URL: http://{host}:{port}")
     print(f"Static directory: {STATIC_DIR}")
     print(f"Templates directory: {TEMPLATES_DIR}")
     print(f"Config file: {CONFIG_FILE}")
@@ -1846,7 +1859,8 @@ def run_server(host: str = "127.0.0.1", port: int = 8000):
         app,
         host=host,
         port=port,
-        log_level="info"
+        log_level="info",
+        use_colors=False
     )
 
 if __name__ == "__main__":

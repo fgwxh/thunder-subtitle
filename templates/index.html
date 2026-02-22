@@ -149,6 +149,35 @@
                     <input type="text" class="form-control" id="language" placeholder="例如: zh-CN, en">
                 </div>
                 <div class="form-group">
+                    <label>视频文件类型</label>
+                    <select class="form-select" id="videoExtensions" multiple style="height: 120px;">
+                        <option value=".mp4" selected>.mp4</option>
+                        <option value=".avi" selected>.avi</option>
+                        <option value=".mkv" selected>.mkv</option>
+                        <option value=".mov" selected>.mov</option>
+                        <option value=".wmv" selected>.wmv</option>
+                        <option value=".flv" selected>.flv</option>
+                        <option value=".webm" selected>.webm</option>
+                        <option value=".m4v" selected>.m4v</option>
+                        <option value=".rmvb">.rmvb</option>
+                        <option value=".rm">.rm</option>
+                        <option value=".ts">.ts</option>
+                        <option value=".m2ts">.m2ts</option>
+                        <option value=".vob">.vob</option>
+                        <option value=".ogm">.ogm</option>
+                        <option value=".mpg">.mpg</option>
+                        <option value=".mpeg">.mpeg</option>
+                        <option value=".3gp">.3gp</option>
+                        <option value=".3g2">.3g2</option>
+                        <option value=".f4v">.f4v</option>
+                    </select>
+                    <small class="form-text text-muted">按住 Ctrl 键可多选</small>
+                </div>
+                <div class="input-group input-group-sm mt-2">
+                    <input type="text" class="form-control" id="customVideoType" placeholder="自定义视频类型，如 .mkv">
+                    <button class="btn btn-outline-secondary" type="button" onclick="addCustomVideoType()">添加</button>
+                </div>
+                <div class="form-group">
                     <label>超时时间 (秒)</label>
                     <input type="number" class="form-control" id="timeout" value="60" min="1" max="300">
                 </div>
@@ -661,6 +690,24 @@
                 document.getElementById('timeout').value = config.timeout || 60;
                 document.getElementById('retries').value = config.retries || 2;
                 
+                // 加载视频文件类型配置
+                const videoExtensions = config.video_extensions || ['.mp4', '.avi', '.mkv', '.mov', '.wmv', '.flv', '.webm', '.m4v'];
+                const select = document.getElementById('videoExtensions');
+                const existingValues = Array.from(select.options).map(o => o.value);
+                
+                for (const ext of videoExtensions) {
+                    if (!existingValues.includes(ext)) {
+                        const option = document.createElement('option');
+                        option.value = ext;
+                        option.textContent = ext;
+                        select.appendChild(option);
+                    }
+                }
+                
+                for (let i = 0; i < select.options.length; i++) {
+                    select.options[i].selected = videoExtensions.includes(select.options[i].value);
+                }
+                
                 const aiConfig = config.ai_evaluator || {};
                 document.getElementById('aiEnabled').checked = aiConfig.enabled || false;
                 document.getElementById('aiApiKey').value = aiConfig.api_key || '';
@@ -682,6 +729,9 @@
         document.getElementById('aiEnabled').addEventListener('change', toggleAiSettings);
         
         async function saveConfig() {
+            // 获取选中的视频文件类型
+            const videoExtensions = Array.from(document.getElementById('videoExtensions').selectedOptions).map(o => o.value);
+            
             const config = {
                 video_dir: document.getElementById('videoDir').value,
                 save_dir: document.getElementById('saveDir').value,
@@ -689,6 +739,7 @@
                 language: document.getElementById('language').value,
                 timeout: parseFloat(document.getElementById('timeout').value),
                 retries: parseInt(document.getElementById('retries').value),
+                video_extensions: videoExtensions,
                 ai_evaluator: {
                     enabled: document.getElementById('aiEnabled').checked,
                     api_key: document.getElementById('aiApiKey').value,
@@ -2729,6 +2780,10 @@
         
         function addSmbFileType() {
             addFileTypeToSelect('smbFileTypes', 'smbCustomType');
+        }
+        
+        function addCustomVideoType() {
+            addFileTypeToSelect('videoExtensions', 'customVideoType');
         }
         
         document.getElementById('smb-tab').addEventListener('shown.bs.tab', function() {

@@ -54,10 +54,10 @@ def default_output_path(project_root: Path) -> Path:
 
 
 def load_config(*, project_root: Path) -> SmbConfig:
-    host = os.environ.get("SMB_HOST", "192.168.0.21")
-    share = os.environ.get("SMB_SHARE", "Video")
-    dir_path = os.environ.get("SMB_DIR", "动漫/哆啦A梦")
-    user = os.environ.get("SMB_USER", "ZeroDevi1")
+    host = os.environ.get("SMB_HOST", "")
+    share = os.environ.get("SMB_SHARE", "")
+    dir_path = os.environ.get("SMB_DIR", "")
+    user = os.environ.get("SMB_USER", "")
     password = os.environ.get("SMB_PASS", "")
     output_path = Path(os.environ.get("OUTPUT_PATH", str(default_output_path(project_root))))
 

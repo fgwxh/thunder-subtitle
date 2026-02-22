@@ -6,7 +6,7 @@ from typing import Any, Iterable
 
 import httpx
 
-from .models import ThunderSubtitleResponse, ThunderSubtitleItem
+from thunder_subtitle_cli.models import ThunderSubtitleResponse, ThunderSubtitleItem
 
 
 class ThunderAPIError(RuntimeError):

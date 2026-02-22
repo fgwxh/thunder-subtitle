@@ -1,10 +1,24 @@
 # thunder-subtitle-cli
 
-一个用于"迅雷字幕（Xunlei/Thunder）字幕接口"的搜索/下载工具，支持命令行子命令，也支持默认进入 TUI（交互菜单）。
+一个用于"迅雷字幕（Xunlei/Thunder）字幕接口"的搜索/下载工具，支持命令行子命令，也支持默认进入 TUI（交互菜单），同时支持docker部署。
 
 > **项目来源**：本项目基于 [thunder-subtitle](https://github.com/ZeroDevi1/thunder-subtitle) 进行二次开发和功能扩展。
 
 ## 项目概述
+
+### 近期更新
+
+#### 功能添加
+- **自定义视频文件类型**：在 Web UI 中可配置要扫描的视频文件类型，支持添加自定义视频扩展名
+- **可执行文件构建**：提供包含 FastAPI Web UI 功能的可执行文件构建配置
+- **Docker 部署支持**：优化 Dockerfile，支持快速容器化部署，镜像体积更小
+- **启动提示优化**：启动时显示清晰的可访问地址，避免 0.0.0.0 无法访问的困惑
+
+#### 问题修复
+- **CTRL+C 退出错误**：修复了按 CTRL+C 退出时出现的 ImportError 错误
+- **命令行显示问题**：修复了在某些命令行环境中显示乱码的问题
+- **隐私信息清理**：清理了项目中的 API 密钥和默认 SMB 配置等敏感信息
+- **Docker 构建问题**：优化 Dockerfile 构建流程，解决各种构建失败问题
 
 ### 系统兼容性
 
@@ -22,6 +36,20 @@
 
 
 ### 运行方式
+
+#### 0. 可执行文件（推荐，无需安装依赖）
+
+如果您不想安装任何依赖，可直接使用本项目提供的可执行文件：
+
+1. **下载**：从项目发布页面下载 `thunder-subtitle-fastapi.exe` 文件
+2. **运行**：双击可执行文件即可启动服务
+3. **访问**：打开浏览器，访问 `http://localhost:8010` 进入 Web UI
+
+**优势**：
+- 无需安装 Python 或任何依赖
+- 一键启动，操作简单
+- 包含所有核心功能
+- 支持 Windows 32位和64位系统
 
 #### 1. 传统Web UI 界面
 
@@ -121,7 +149,20 @@ python run_fastapi_ui.py
 .\venv\Scripts\python.exe run_fastapi_ui.py
 ```
 
-**访问地址**：http://localhost:8010
+**方式三：桌面端Docker 容器部署  **
+
+```bash
+# 构建镜像
+docker build -t thunder-subtitle .
+
+# 运行容器
+docker run -p 8010:8010 --rm fgwxh123/thunder-subtitle:latest
+
+```
+
+构建完成后访问：
+- 本机访问：http://localhost:8010
+- 服务器部署：http://你的服务器IP:8010
 
 详细使用说明请参考 [WEB_UI_README.md](file:///d:/my%20workers/thunder-subtitle-main/WEB_UI_README.md)
 
@@ -168,6 +209,7 @@ uv run thunder-subtitle batch "Movie1" "Movie2" --out-dir ./subs
 - 自动识别视频文件
 - 支持递归扫描子目录
 - 支持多种视频格式
+- **自定义视频文件类型**：可在 Web UI 中配置要扫描的视频文件类型，支持添加自定义视频扩展名
 
 ### 3. AI 字幕评估
 - 基于规则的评估
@@ -234,7 +276,51 @@ uv run python scripts/build_exe.py
 
 输出目录：`dist/`
 
-#### 2.2 GitHub Actions 三端构建（推荐）
+#### 2.2 构建包含 FastAPI Web UI 的可执行文件
+
+本项目还提供了包含 FastAPI Web UI 功能的可执行文件构建配置：
+
+```bash
+# 构建包含 FastAPI Web UI 的可执行文件
+uv run python -m PyInstaller --noconfirm --clean packaging/thunder-subtitle-fastapi.spec
+```
+
+输出目录：`dist/`
+
+生成的可执行文件：`thunder-subtitle-fastapi.exe`（Windows）
+
+### 2.3 可执行文件使用说明
+
+1. **无需安装依赖**：可执行文件已包含所有必要的依赖，直接运行即可
+2. **启动方式**：双击可执行文件或在命令行中运行
+3. **访问地址**：http://localhost:8010
+4. **功能完整**：包含所有 Web UI 功能，包括视频扫描、字幕搜索、批量下载、AI 评估等
+5. **跨平台兼容**：Windows 32位和64位系统均可运行
+
+### 2.4 常见问题
+
+**Q: 运行可执行文件时命令行显示乱码或不正常**
+
+A: 已修复，可执行文件现在使用纯文本输出，在任何命令行环境中都能正常显示。
+
+**Q: 按 CTRL+C 退出时出现错误**
+
+A: 已修复，现在按 CTRL+C 退出时会优雅退出，无错误信息。
+
+**Q: 可执行文件是否包含所有功能**
+
+A: 是的，可执行文件包含所有核心功能，包括：
+- 本地视频检索和扫描
+- 字幕搜索和下载
+- AI 字幕评估
+- SMB 网络存储支持
+- 自定义视频文件类型
+
+**Q: 其他用户下载使用可执行文件时，是否需要安装其他依赖环境**
+
+A: 不需要，可执行文件已完全独立，包含所有必要的依赖，直接运行即可使用所有功能。
+
+#### 2.5 GitHub Actions 三端构建（推荐）
 
 工作流：`.github/workflows/build-binaries.yml`
 
@@ -339,10 +425,10 @@ A: 点击 Web UI 中的"测试连接"按钮，成功后会显示连接正常。
 - `scripts/smb_list_doraemon.py`
 
 环境变量（不要把密码写进仓库；可参考 `.env.example`）：
-- `SMB_HOST`（默认：`192.168.0.21`）
-- `SMB_SHARE`（默认：`Video`）
-- `SMB_DIR`（默认：`动漫/哆啦A梦`）
-- `SMB_USER`（默认：`ZeroDevi1`）
+- `SMB_HOST`（默认：空字符串，必填）
+- `SMB_SHARE`（默认：空字符串，必填）
+- `SMB_DIR`（默认：空字符串，必填）
+- `SMB_USER`（默认：空字符串，必填）
 - `SMB_PASS`（必填）
 - `OUTPUT_PATH`（默认：`out/episode_list.txt`）
 

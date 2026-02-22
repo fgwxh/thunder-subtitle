@@ -9,12 +9,12 @@ import typer
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeElapsedColumn
 
-from .client import ThunderClient, download_with_retries
-from .core import apply_filters as _apply_filters
-from .formatting import print_search_table, to_json
-from .models import ThunderSubtitleItem
-from .selector import InteractiveSelector, DeterministicSelector, Selector
-from .util import (
+from thunder_subtitle_cli.client import ThunderClient, download_with_retries
+from thunder_subtitle_cli.core import apply_filters as _apply_filters
+from thunder_subtitle_cli.formatting import print_search_table, to_json
+from thunder_subtitle_cli.models import ThunderSubtitleItem
+from thunder_subtitle_cli.selector import InteractiveSelector, DeterministicSelector, Selector
+from thunder_subtitle_cli.util import (
     compute_item_id,
     ensure_unique_path,
     is_tty,
@@ -31,7 +31,7 @@ def _main(ctx: typer.Context) -> None:
     # Default behavior: enter TUI when running in an interactive terminal.
     if ctx.invoked_subcommand is None:
         if is_tty():
-            from .tui import run_tui
+            from thunder_subtitle_cli.tui import run_tui
 
             run_tui()
             raise typer.Exit(code=0)
@@ -45,7 +45,7 @@ def tui() -> None:
     """进入 TUI 模式（交互菜单）。"""
     if not is_tty():
         raise typer.BadParameter("TUI 需要在交互式终端（TTY）中运行。")
-    from .tui import run_tui
+    from thunder_subtitle_cli.tui import run_tui
 
     run_tui()
 

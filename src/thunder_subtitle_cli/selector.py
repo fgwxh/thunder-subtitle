@@ -5,8 +5,8 @@ from typing import Protocol, Sequence
 
 import questionary
 
-from .models import ThunderSubtitleItem
-from .util import compute_item_id
+from thunder_subtitle_cli.models import ThunderSubtitleItem
+from thunder_subtitle_cli.util import compute_item_id
 
 
 @dataclass(frozen=True, slots=True)
